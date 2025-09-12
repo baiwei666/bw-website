@@ -1,5 +1,5 @@
 git add .
-git commit -m "更新了网站内容"
+git commit -m "update the website"
 git push
 
 pause
