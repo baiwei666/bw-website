@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>恒大集团财务问题深度分析报告</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral & Calm Blue -->
+    <!-- Application Structure Plan: 本应用采用顶部导航栏切换内容的单页应用（SPA）结构。用户可以通过点击导航项在六个核心模块间无缝切换，无需重新加载页面。这种设计旨在将复杂的分析报告分解为逻辑清晰、易于消化的主题板块（危机时间轴、根源剖析、危机传导、行业对比、应对重组、未来展望）。每个板块内部，通过卡片式布局、交互式图表和动态文本展示关键信息，引导用户从宏观背景深入到微观细节。选择此结构是为了优化信息获取效率，让用户能根据自身兴趣点自由探索，而不是被动地线性阅读，从而更好地理解恒大危机的多维度成因与影响。 -->
+    <!-- Visualization & Content Choices: 
+        1. 危机时间轴: 目标-呈现事件演变; 方式-垂直时间线(HTML/CSS); 交互-无; 理由-直观展示危机发展脉络。
+        2. 财务结构(负债): 目标-揭示债务风险; 方式-堆叠条形图(Chart.js); 交互-鼠标悬停显示数据; 理由-清晰对比总负债中短期债务的剧增。
+        3. 财务结构(现金流): 目标-展示失衡状况; 方式-多线图(Chart.js); 交互-鼠标悬停显示数据; 理由-直观表现经营造血能力枯竭，依赖融资续命的模式。
+        4. 战略决策: 目标-说明多元化陷阱; 方式-卡片式布局(HTML/CSS); 交互-无; 理由-简洁罗列主要扩张领域及其资本消耗。
+        5. 行业对比: 目标-凸显恒大模式的极端性; 方式-分组条形图(Chart.js); 交互-鼠标悬停显示数据; 理由-与稳健型企业万科的直接数据对比，一目了然。
+        6. 清盘路径: 目标-解释资产处置顺序; 方式-层级列表(HTML/CSS); 交互-无; 理由-清晰说明法律规定的债权人清偿优先级。
+        所有图表均使用Chart.js基于Canvas渲染，确保动态交互性和跨平台兼容性。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f8f7f4;
+            color: #333;
+        }
+        .nav-link {
+            @apply px-4 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-200 hover:text-gray-900 transition-colors duration-200;
+        }
+        .nav-link.active {
+            @apply bg-gray-800 text-white shadow-md;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .timeline-item {
+            border-left: 3px solid #cbd5e1;
+        }
+        .timeline-item:last-child {
+            border-left: 3px solid transparent;
+        }
+        .timeline-dot {
+            position: absolute;
+            left: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            background-color: #4a5568;
+            border-radius: 50%;
+            border: 3px solid #f8f7f4;
+        }
+        .chart-container {
+            position: relative; 
+            width: 100%; 
+            max-width: 800px; 
+            margin-left: auto; 
+            margin-right: auto; 
+            height: 320px;
+            max-height: 450px;
+        }
+        @media (min-width: 768px) { 
+            .chart-container { 
+                height: 400px; 
+            } 
+        }
+        .stat-card {
+            @apply bg-white p-6 rounded-xl shadow-lg border border-gray-200 transition-transform duration-300 hover:scale-105;
+        }
+        .stat-card .value {
+            @apply text-3xl md:text-4xl font-bold;
+        }
+        .stat-card .label {
+            @apply text-sm text-gray-500 mt-1;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 py-8">
+        
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800">恒大集团财务问题深度分析</h1>
+            <p class="mt-4 text-lg text-gray-600">一份交互式报告，解析巨象倾颓的背后逻辑</p>
+        </header>
+
+        <nav id="navigation" class="flex flex-wrap justify-center gap-2 md:gap-4 mb-12 bg-white/80 backdrop-blur-sm sticky top-4 z-10 p-3 rounded-xl shadow-md border border-gray-200">
+            <a href="#introduction" class="nav-link active">引言与时间轴</a>
+            <a href="#roots" class="nav-link">危机的根源</a>
+            <a href="#impact" class="nav-link">危机的传导</a>
+            <a href="#comparison" class="nav-link">行业坐标</a>
+            <a href="#response" class="nav-link">应对与重组</a>
+            <a href="#outlook" class="nav-link">未来展望</a>
+        </nav>
+
+        <main id="content-container">
+            <!-- Section 1: Introduction & Timeline -->
+            <section id="introduction" class="content-section active">
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">第一部分：引言与危机时间轴</h2>
+                    <p class="text-gray-700 leading-relaxed">
+                        中国恒大集团，曾是中国房地产行业的领军者，以其惊人的扩张速度和规模闻名。然而，自2021年起，一场深刻的债务危机将其推向了全球关注的焦点。本报告旨在通过交互式的数据分析，深入剖析恒大从巅峰到危机的演变路径。下面的时间轴将首先勾勒出关键事件的脉络，为理解这场危机的复杂性提供一个宏观背景。
+                    </p>
+                </div>
+
+                <div class="relative">
+                    <div class="timeline-item relative pl-12 pb-12">
+                        <div class="timeline-dot"></div>
+                        <p class="text-sm font-semibold text-gray-500">2015 - 2020年</p>
+                        <h3 class="text-xl font-bold mt-1">高速扩张期</h3>
+                        <p class="mt-2 text-gray-600">恒大在此期间通过“三高一低”（高负债、高杠杆、高周转、低成本）模式实现规模急剧扩张，销售额屡创新高，同时大举进军新能源汽车、文旅、健康等多元化业务，总资产规模突破2万亿人民币。</p>
+                    </div>
+                    <div class="timeline-item relative pl-12 pb-12">
+                        <div class="timeline-dot"></div>
+                        <p class="text-sm font-semibold text-gray-500">2020年8月</p>
+                        <h3 class="text-xl font-bold mt-1">“三道红线”政策出台</h3>
+                        <p class="mt-2 text-gray-600">监管机构针对房地产企业设置了“三道红线”的融资新规，旨在控制行业杠杆水平。恒大所有指标均“踩线”，其高度依赖融资的模式受到致命打击，流动性开始收紧。</p>
+                    </div>
+                    <div class="timeline-item relative pl-12 pb-12">
+                        <div class="timeline-dot"></div>
+                        <p class="text-sm font-semibold text-gray-500">2021年6月</p>
+                        <h3 class="text-xl font-bold mt-1">商票逾期，危机显现</h3>
+                        <p class="mt-2 text-gray-600">恒大旗下多地项目的商业承兑汇票出现逾期未能兑付的情况，引发供应商和投资者的普遍担忧，公开市场上的股债价格开始暴跌。</p>
+                    </div>
+                    <div class="timeline-item relative pl-12 pb-12">
+                        <div class="timeline-dot"></div>
+                        <p class="text-sm font-semibold text-gray-500">2021年9月</p>
+                        <h3 class="text-xl font-bold mt-1">首次美元债利息违约</h3>
+                        <p class="mt-2 text-gray-600">恒大未能按期支付一笔美元债券的利息，标志着其债务危机全面爆发，正式进入债务违约阶段，引发全球金融市场震动。</p>
+                    </div>
+                     <div class="timeline-item relative pl-12 pb-12">
+                        <div class="timeline-dot"></div>
+                        <p class="text-sm font-semibold text-gray-500">2022年 - 2023年</p>
+                        <h3 class="text-xl font-bold mt-1">债务重组尝试</h3>
+                        <p class="mt-2 text-gray-600">恒大持续与境内外债权人进行沟通，并于2023年3月公布了初步的境外债务重组方案。然而，由于销售不及预期、监管调查等因素，重组进程一波三折，最终未能成功。</p>
+                    </div>
+                    <div class="timeline-item relative pl-12 pb-12">
+                        <div class="timeline-dot"></div>
+                        <p class="text-sm font-semibold text-gray-500">2024年1月29日</p>
+                        <h3 class="text-xl font-bold mt-1">香港法院颁布清盘令</h3>
+                        <p class="mt-2 text-gray-600">由于债务重组方案缺乏进展，香港高等法院正式向中国恒大发出清盘令。这标志着这家曾经的地产巨头走入了司法清算的程序，其资产处置和债务清偿进入了一个新的、充满不确定性的阶段。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Roots of the Crisis -->
+            <section id="roots" class="content-section">
+                 <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">第二部分：危机的根源：财务与战略的双重失控</h2>
+                    <p class="text-gray-700 leading-relaxed">
+                        恒大的危机并非一日之寒，其根源深植于长期的财务失衡和激进的战略决策。本部分将从财务结构和战略选择两个维度，深入剖析导致这场危机的核心内部因素。我们将通过数据图表直观展示其“三高一低”模式的内在风险，并探讨其无边界的多元化扩张如何最终耗尽了企业的流动性。
+                    </p>
+                </div>
+                
+                <div class="space-y-12">
+                    <div>
+                        <h3 class="text-2xl font-bold text-center mb-2">2.1 财务结构剖析</h3>
+                        <p class="text-center text-gray-600 mb-8">风险早已在财务报表中显露无遗。</p>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div class="stat-card">
+                                <h4 class="text-xl font-semibold text-gray-800 mb-4">负债结构：短债长投的“定时炸弹”</h4>
+                                <p class="text-gray-600 mb-4 text-sm">恒大严重依赖短期借款来支持其长期项目开发，导致巨大的期限错配风险。如下图所示，其短期债务（一年内到期）占比逐年攀升，一旦融资渠道收紧，企业将立即面临巨大的兑付压力。</p>
+                                <div class="chart-container">
+                                    <canvas id="debtStructureChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <h4 class="text-xl font-semibold text-gray-800 mb-4">现金流量：失衡的“造血”与“输血”</h4>
+                                 <p class="text-gray-600 mb-4 text-sm">健康的现金流是企业的生命线。然而，恒大的经营性现金流长期为负或勉强维持，远不足以覆盖庞大的投资支出和到期债务。企业高度依赖融资性现金流（借新还旧）来维持运转，这种模式在信贷紧缩周期中极其脆弱。</p>
+                                <div class="chart-container">
+                                    <canvas id="cashFlowChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                         <div class="mt-8 stat-card">
+                            <h4 class="text-xl font-semibold text-gray-800 mb-4 text-center">表外债务：隐藏的“冰山”</h4>
+                             <p class="text-gray-600 mb-6 text-sm text-center max-w-3xl mx-auto">除了财报上的巨额负债，恒大还通过多种方式构建了庞大的“隐形”债务网络，这些债务透明度低、风险更难监控，最终成为引爆危机的关键点。</p>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h5 class="font-bold text-lg">商业票据（商票）</h5>
+                                    <p class="text-sm text-gray-500 mt-2">向数千家上下游供应商开具大量商票，作为延迟支付的手段，实质上是无息占用供应商资金，规模一度高达数千亿，是危机中最先爆雷的一环。</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h5 class="font-bold text-lg">明股实债</h5>
+                                    <p class="text-sm text-gray-500 mt-2">通过引入战略投资者并承诺固定回报或回购，将本应计为债务的融资款项在报表上列为股权投资，以降低表观负债率。</p>
+                                </div>
+                                 <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h5 class="font-bold text-lg">关联方担保</h5>
+                                    <p class="text-sm text-gray-500 mt-2">利用复杂的集团内部结构，为子公司或关联公司的融资提供担保，这些或有负债在主体公司陷入困境时迅速转化为实际债务。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-center mb-2">2.2 战略决策研判</h3>
+                        <p class="text-center text-gray-600 mb-8">无边界的多元化扩张，加速了流动性枯竭。</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div class="stat-card text-center">
+                                <div class="text-4xl mb-3">🚗</div>
+                                <h4 class="text-xl font-bold">恒大汽车</h4>
+                                <p class="text-gray-600 mt-2">计划投资数千亿，立志成为全球最大的新能源汽车集团。然而，项目长期处于“烧钱”阶段，量产迟迟未能实现，形成了巨大的资本黑洞。</p>
+                            </div>
+                             <div class="stat-card text-center">
+                                <div class="text-4xl mb-3">🏞️</div>
+                                <h4 class="text-xl font-bold">恒大文旅</h4>
+                                <p class="text-gray-600 mt-2">以“恒大童世界”为代表，在全国多地布局大型文旅项目。此类项目投资巨大、回报周期长，对资金链造成了沉重压力。</p>
+                            </div>
+                             <div class="stat-card text-center">
+                                <div class="text-4xl mb-3">❤️</div>
+                                <h4 class="text-xl font-bold">恒大健康</h4>
+                                <p class="text-gray-600 mt-2">布局大健康产业，包括养生谷等项目。与主业协同效应不强，且同样需要大量前期投入，进一步分散了宝贵的资金和管理资源。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Impact & Contagion -->
+            <section id="impact" class="content-section">
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">第三部分：危机的传导：系统性影响的多维度评估</h2>
+                    <p class="text-gray-700 leading-relaxed">
+                        恒大危机的影响远超企业自身，其巨大的体量和在经济体系中的深度关联，使其风险迅速传导至实体经济和金融系统的各个角落。本部分将评估这场危机所造成的广泛冲击，从数千家供应商的生存困境，到百万购房者的安居难题，再到金融市场的信心动摇，全面展示其系统性的溢出效应。
+                    </p>
+                </div>
+                <div class="space-y-12">
+                     <div>
+                        <h3 class="text-2xl font-bold text-center mb-8">3.1 对实体经济的冲击</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                             <div class="stat-card">
+                                <p class="value text-red-600">~8000亿</p>
+                                <p class="label">对上下游产业链的欠款</p>
+                                <p class="text-gray-600 mt-4 text-sm">数千家供应商和承包商面临应收账款坏账风险，许多中小企业因此陷入经营困境甚至破产。</p>
+                             </div>
+                             <div class="stat-card">
+                                <p class="value text-red-600">>150万</p>
+                                <p class="label">已售未交楼的房屋套数</p>
+                                <p class="text-gray-600 mt-4 text-sm">“保交楼”成为重大的社会和民生问题，直接关系到百万家庭的切身利益和社会稳定。</p>
+                            </div>
+                            <div class="stat-card">
+                                <p class="value text-red-600">~17万</p>
+                                <p class="label">高峰期员工数量</p>
+                                <p class="text-gray-600 mt-4 text-sm">危机导致大规模裁员和欠薪，对员工就业和家庭生活造成了直接冲击。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-center mb-8">3.2 对金融体系的溢出效应</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             <div class="stat-card">
+                                <h4 class="font-semibold text-xl mb-3">金融机构风险敞口</h4>
+                                <p class="text-gray-600 text-sm">大量银行、信托公司、资管机构是恒大的主要债权人。恒大违约导致这些机构资产质量下降，不良贷款率上升，部分中小金融机构甚至面临生存危机。</p>
+                             </div>
+                             <div class="stat-card">
+                                <h4 class="font-semibold text-xl mb-3">行业信贷紧缩与信心危机</h4>
+                                <p class="text-gray-600 text-sm">恒大事件严重冲击了国内外投资者对中国房地产行业的信心，导致整个行业的融资环境急剧恶化。其他房企，即便是相对稳健的企业，也面临再融资困难，触发了更大范围的行业流动性危机。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Industry Comparison -->
+            <section id="comparison" class="content-section">
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">第四部分：行业坐标：与国内外同行的比较分析</h2>
+                    <p class="text-gray-700 leading-relaxed">
+                        为了更深刻地理解恒大问题的特殊性，我们需要将其置于更广阔的行业坐标中进行横向对比。本部分将选取国内稳健型房企的代表——万科集团，进行关键财务指标的对比，以凸显恒大在杠杆运用和财务风险控制上的极端性。通过这种比较，我们可以更清晰地识别出导致不同发展路径的关键差异点。
+                    </p>
+                </div>
+                <div class="stat-card">
+                     <h3 class="text-2xl font-bold text-center mb-2">关键财务指标对比：恒大 vs 万科 (危机前)</h3>
+                    <p class="text-center text-gray-600 mb-8">数据选取截至2020年末，即“三道红线”政策出台后，恒大危机全面爆发前的时间点。</p>
+                    <div class="chart-container">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                    <div class="mt-8 px-4">
+                        <h4 class="font-semibold text-lg mb-2">对比分析结论：</h4>
+                        <ul class="list-disc list-inside text-gray-700 space-y-2 text-sm">
+                            <li><strong class="font-semibold text-gray-900">杠杆水平：</strong>恒大的净负债率和剔除预收账款后的资产负债率远高于万科，显示其对债务融资的极度依赖和更高的财务风险。</li>
+                            <li><strong class="font-semibold text-gray-900">短期偿债能力：</strong>恒大的现金短债比远低于1，意味着其持有的现金无法覆盖短期到期的债务，存在严重的流动性风险。而万科则保持在相对安全的水平。</li>
+                            <li><strong class="font-semibold text-gray-900">发展模式差异：</strong>对比清晰地揭示了两种截然不同的发展模式。恒大追求极致的规模扩张，不惜以极高的财务杠杆为代价；而万科则更注重财务的稳健和可持续发展，对杠杆的使用保持了相对克制。</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 5: Response & Restructuring -->
+            <section id="response" class="content-section">
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">第五部分：应对与重组：已采取的措施及其效果评估</h2>
+                     <p class="text-gray-700 leading-relaxed">
+                        危机爆发后，监管机构、恒大自身以及其他相关方迅速采取了一系列应对措施。本部分将梳理这些关键举措，从宏观调控政策的“最后一根稻草”效应，到政府处置危机的核心原则，再到恒大自身充满波折的自救与重组尝试，直至最终被法院清盘的全过程。这展现了一场在复杂利益博弈下的艰难应对。
+                    </p>
+                </div>
+                <div class="space-y-12">
+                     <div>
+                        <h3 class="text-2xl font-bold text-center mb-8">监管介入与政策应对</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             <div class="stat-card">
+                                <h4 class="font-semibold text-xl mb-3">压垮骆驼的“三道红线”</h4>
+                                <p class="text-gray-600 text-sm">2020年出台的“三道红线”政策，精确打击了高杠杆房企的融资生命线。对于已严重“踩线”的恒大而言，这无异于釜底抽薪，直接触发了其流动性危机的爆发，成为压垮它的最后一根稻草。</p>
+                             </div>
+                             <div class="stat-card">
+                                <h4 class="font-semibold text-xl mb-3">“三保”处置原则</h4>
+                                <p class="text-gray-600 text-sm">危机全面爆发后，政府确立了“保交楼、保民生、保稳定”的核心处置原则。这意味着政策的优先目标是保护购房者的合法权益和社会稳定，而非救助企业本身或其股东。这为后续所有处置工作定下了基调。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-center mb-8">恒大的自救与重组尝试</h3>
+                         <div class="stat-card">
+                            <h4 class="font-semibold text-xl mb-3 text-center">境外债务重组的失败之路</h4>
+                            <p class="text-gray-600 text-sm leading-relaxed max-w-4xl mx-auto">
+                                恒大曾尝试通过出售资产、引入战投等方式自救，但效果甚微。其后，工作的重心转向与境外债权人的债务重组谈判。公司于2023年3月公布了一份重组方案，计划通过“债转股”（转为恒大汽车、恒大物业股权）和发行新票据等方式来解决约190亿美元的境外债务。
+                                <br><br>
+                                然而，该方案的推进困难重重。首先，公司的持续经营能力和销售回款情况远不及预期，削弱了重组方案的可信度。其次，2023年9月，恒大公告称，由于其地产集团正被立案调查，导致其无法发行新票据，这使得原有的重组方案在技术上无法执行。最终，在多次延期后，重组方案未能获得必要的债权人支持和法院批准，导致香港法院在2024年1月对其颁布了清盘令，标志着其通过债务重组自救的努力彻底失败。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 6: Outlook & Lessons -->
+            <section id="outlook" class="content-section">
+                <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200 mb-12">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">第六部分：未来展望：潜在解决方案与行业启示</h2>
+                    <p class="text-gray-700 leading-relaxed">
+                        随着恒大进入清盘程序，市场的焦点转向了其庞大资产的处置和债务的清偿问题。本部分将基于现有局面，对清盘路径进行推演，评估潜在的解决方案，并从这场史无前例的危机中提炼出对中国房地产行业、企业风险内控以及金融监管体系的深层启示。恒大的倒下，不仅是一个企业的终结，更是行业一个时代的落幕。
+                    </p>
+                </div>
+                <div class="space-y-12">
+                     <div>
+                        <h3 class="text-2xl font-bold text-center mb-8">清盘路径与资产处置推演</h3>
+                         <div class="stat-card">
+                            <h4 class="font-semibold text-xl mb-4 text-center">债权清偿的优先顺序</h4>
+                             <p class="text-gray-600 text-sm mb-6 text-center">清盘人的核心任务是在法律框架下，最大化地变卖公司资产以清偿债务。根据法律规定和“保民生”的原则，清偿顺序预计如下：</p>
+                             <div class="max-w-md mx-auto space-y-4">
+                                <div class="p-4 bg-green-50 border-l-4 border-green-500 rounded">
+                                    <p class="font-bold">第一优先级：购房者</p>
+                                    <p class="text-sm text-gray-700">“保交楼”资金将得到最优先保障，确保已售出项目的建设和交付。</p>
+                                </div>
+                                 <div class="p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded">
+                                    <p class="font-bold">第二优先级：供应商/承包商</p>
+                                    <p class="text-sm text-gray-700">建设工程款等相关债权通常具有优先受偿权。</p>
+                                </div>
+                                 <div class="p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
+                                    <p class="font-bold">第三优先级：境内有抵押债权人</p>
+                                    <p class="text-sm text-gray-700">对特定资产拥有抵押权的银行等金融机构。</p>
+                                </div>
+                                <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded">
+                                    <p class="font-bold">第四优先级：普通债权人 (境内外)</p>
+                                    <p class="text-sm text-gray-700">包括购买无抵押债券的境内外投资者。预计该层级的最终债权回收率将非常低。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                     <div>
+                        <h3 class="text-2xl font-bold text-center mb-8">行业深层启示</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                             <div class="stat-card">
+                                <h4 class="font-semibold text-xl mb-3">告别高杠杆模式</h4>
+                                <p class="text-gray-600 text-sm">恒大事件宣告了“高负债、高杠杆、高周转”的旧发展模式的终结。未来，房地产企业必须转向更注重现金流管理、利润质量和可持续发展的稳健经营模式。</p>
+                             </div>
+                              <div class="stat-card">
+                                <h4 class="font-semibold text-xl mb-3">敬畏风险内控</h4>
+                                <p class="text-gray-600 text-sm">企业必须建立强大的内部风险控制体系，审慎评估多元化扩张的风险，避免主业空心化。对财务杠杆的使用应保持克制，确保流动性安全是企业经营的底线。</p>
+                             </div>
+                             <div class="stat-card">
+                                <h4 class="font-semibold text-xl mb-3">完善金融监管</h4>
+                                <p class="text-gray-600 text-sm">危机暴露了对表外债务、复杂金融工具监管的不足。未来金融监管需要更具穿透性，有效识别和控制系统性风险的积累，防止单个企业的风险演变为行业性甚至系统性危机。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            function navigateTo(hash) {
+                navLinks.forEach(link => {
+                    if (link.getAttribute('href') === hash) {
+                        link.classList.add('active');
+                    } else {
+                        link.classList.remove('active');
+                    }
+                });
+
+                contentSections.forEach(section => {
+                    if ('#' + section.id === hash) {
+                        section.classList.add('active');
+                    } else {
+                        section.classList.remove('active');
+                    }
+                });
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    window.location.hash = targetId;
+                });
+            });
+
+            window.addEventListener('hashchange', () => {
+                const hash = window.location.hash || '#introduction';
+                navigateTo(hash);
+            });
+            
+            const initialHash = window.location.hash || '#introduction';
+            navigateTo(initialHash);
+
+
+            const chartConfigs = {
+                debtStructure: {
+                    type: 'bar',
+                    data: {
+                        labels: ['2018', '2019', '2020', '2021', '2022'],
+                        datasets: [{
+                            label: '短期债务 (亿元)',
+                            data: [6709, 6066, 9477, 6653, 5871],
+                            backgroundColor: '#ef4444',
+                        }, {
+                            label: '长期债务 (亿元)',
+                            data: [3936, 4209, 3968, 2977, 3326],
+                            backgroundColor: '#f97316',
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: { display: false },
+                            tooltip: { mode: 'index', intersect: false },
+                        },
+                        scales: {
+                            x: { stacked: true },
+                            y: { stacked: true, beginAtZero: true, ticks: { callback: value => `${value/1000}k` } }
+                        }
+                    }
+                },
+                cashFlow: {
+                    type: 'line',
+                    data: {
+                        labels: ['2018', '2019', '2020', '2021', '2022'],
+                        datasets: [{
+                            label: '经营性现金流 (亿元)',
+                            data: [1116, 1332, 177, -1891, -263],
+                            borderColor: '#22c55e',
+                            backgroundColor: '#22c55e20',
+                            tension: 0.1,
+                            fill: true,
+                        }, {
+                            label: '投资性现金流 (亿元)',
+                            data: [-1560, -979, -1214, 532, 22],
+                            borderColor: '#f97316',
+                            backgroundColor: '#f9731620',
+                             tension: 0.1,
+                             fill: false,
+                        }, {
+                            label: '融资性现金流 (亿元)',
+                            data: [348, -135, -576, 529, -159],
+                            borderColor: '#3b82f6',
+                            backgroundColor: '#3b82f620',
+                            tension: 0.1,
+                            fill: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: { display: false },
+                            tooltip: { mode: 'index', intersect: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: false, ticks: { callback: value => `${value/1000}k` } }
+                        }
+                    }
+                },
+                comparison: {
+                    type: 'bar',
+                    data: {
+                        labels: ['净负债率', '剔除预收资产负债率', '现金短债比'],
+                        datasets: [{
+                            label: '恒大',
+                            data: [152.9, 83.4, 0.54],
+                            backgroundColor: '#ef4444',
+                            borderColor: '#dc2626',
+                            borderWidth: 1
+                        }, {
+                            label: '万科',
+                            data: [18.1, 70.4, 2.56],
+                            backgroundColor: '#22c55e',
+                            borderColor: '#16a34a',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                         plugins: {
+                            title: { display: false },
+                            tooltip: { mode: 'index', intersect: false },
+                            legend: { position: 'top' },
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value, index, values) {
+                                        const label = this.getLabelForValue(value);
+                                        if (['净负债率', '剔除预收资产负债率'].includes(label)) {
+                                            return value + '%';
+                                        }
+                                        return value;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            const ctxDebt = document.getElementById('debtStructureChart')?.getContext('2d');
+            if(ctxDebt) new Chart(ctxDebt, chartConfigs.debtStructure);
+            
+            const ctxCashFlow = document.getElementById('cashFlowChart')?.getContext('2d');
+            if(ctxCashFlow) new Chart(ctxCashFlow, chartConfigs.cashFlow);
+
+            const ctxComparison = document.getElementById('comparisonChart')?.getContext('2d');
+            if(ctxComparison) new Chart(ctxComparison, chartConfigs.comparison);
+        });
+    </script>
+
+</body>
+</html>

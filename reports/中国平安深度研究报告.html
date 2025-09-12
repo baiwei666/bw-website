@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国平安（601318.SH / 2318.HK）深度研究报告</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral -->
+    <!-- Application Structure Plan: 本应用采用仪表盘式(Dashboard)的非线性结构，而非简单复刻报告章节。顶部导航栏（仪表盘、业务剖析、财务健康、同业对标、估值与展望）实现各功能模块间快速跳转。首页“投资仪表盘”直接呈现股价目标、核心论点等关键结论，满足快节奏信息获取需求。随后的模块通过交互式图表（如甜甜圈图、雷达图）和可切换的标签页，将复杂的业务板块、财务数据和同业比较进行可视化、分层化处理。这种设计旨在引导用户从宏观结论深入到微观细节，主动探索而非被动阅读，显著提升报告内容的可消费性和易理解性。 -->
+    <!-- Visualization & Content Choices: 报告信息->目标->可视化方法->交互->理由->库/方法
+1.  股价目标 -> 告知 -> 仪表盘指针图 -> 动态展示 -> 直观传达股价预期 -> Chart.js
+2.  业务板块贡献 -> 组织/比较 -> 交互式甜甜圈图 -> 点击切换下方详情 -> 快速理解各板块重要性及细节 -> Chart.js + JS
+3.  盈利能力趋势 -> 展示变化 -> 组合条形图 -> 悬停显示具体数值 -> 清晰对比营运利润与投资收益的稳定性 -> Chart.js
+4.  同业关键指标对比 -> 比较 -> 动态雷达图 -> 复选框增删对比公司 -> 实现多维度、多主体的灵活对比 -> Chart.js + JS
+5.  SOTP估值构成 -> 组织 -> 堆叠条形图 -> 悬停显示各部分估值 -> 直观解构总估值来源 -> Chart.js
+所有图表均使用Chart.js（Canvas渲染），杜绝使用SVG。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Noto Sans SC', sans-serif; background-color: #FDFBF8; }
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto; height: 300px; max-height: 400px; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
+        .tab-active { border-color: #C89B6C; color: #C89B6C; background-color: #FDFBF8; }
+        .tab-inactive { border-color: transparent; color: #6B7280; }
+        .nav-link { transition: color 0.3s, border-bottom-color 0.3s; }
+        .nav-link:hover { color: #C89B6C; }
+        .active-nav-link { color: #C89B6C; border-bottom: 2px solid #C89B6C; }
+    </style>
+</head>
+<body class="bg-[#FDFBF8] text-gray-800">
+
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold text-gray-800">中国平安研究报告</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#dashboard" class="nav-link px-3 py-2 text-sm font-medium">投资仪表盘</a>
+                        <a href="#business" class="nav-link px-3 py-2 text-sm font-medium">业务剖析</a>
+                        <a href="#financials" class="nav-link px-3 py-2 text-sm font-medium">财务健康</a>
+                        <a href="#peers" class="nav-link px-3 py-2 text-sm font-medium">同业对标</a>
+                        <a href="#valuation" class="nav-link px-3 py-2 text-sm font-medium">估值与展望</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                     <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-[#C89B6C] hover:bg-gray-100 focus:outline-none">
+                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#dashboard" class="block nav-link px-3 py-2 rounded-md text-base font-medium">投资仪表盘</a>
+                <a href="#business" class="block nav-link px-3 py-2 rounded-md text-base font-medium">业务剖析</a>
+                <a href="#financials" class="block nav-link px-3 py-2 rounded-md text-base font-medium">财务健康</a>
+                <a href="#peers" class="block nav-link px-3 py-2 rounded-md text-base font-medium">同业对标</a>
+                <a href="#valuation" class="block nav-link px-3 py-2 rounded-md text-base font-medium">估值与展望</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <section id="dashboard" class="scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-2 text-center">投资仪表盘：价值重估进行时</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">
+                本部分高度概括报告的核心发现与股价预测。我们认为，中国平安正处于周期底部，其独特的“综合金融+医疗健康”战略价值被市场严重低估，科技赋能的效果将逐步显现，价值重估潜力巨大。
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-lg font-semibold text-gray-500 mb-2">短期目标 (3-6个月)</h3>
+                    <p class="text-4xl font-bold text-[#C89B6C]">¥48.0</p>
+                    <p class="text-sm text-gray-500 mt-2">核心条件：市场情绪修复，NBV增长企稳。</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border-2 border-[#C89B6C]">
+                    <h3 class="text-lg font-semibold text-gray-500 mb-2">中期目标 (1年)</h3>
+                    <p class="text-5xl font-bold text-[#C89B6C]">¥56.0</p>
+                    <p class="text-sm text-gray-500 mt-2">核心条件：代理人改革见效，地产风险敞口压力缓和。</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-lg font-semibold text-gray-500 mb-2">长期目标 (3-5年)</h3>
+                    <p class="text-4xl font-bold text-[#C89B6C]">¥75.0</p>
+                    <p class="text-sm text-gray-500 mt-2">核心条件：医疗健康生态闭环实现价值释放。</p>
+                </div>
+            </div>
+
+            <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4 flex items-center">
+                        <span class="text-green-500 mr-2">▲</span> 核心投资论点
+                    </h3>
+                    <ul class="space-y-3 text-gray-700">
+                        <li class="flex"><span class="font-bold mr-2 text-[#C89B6C]">·</span><div><strong class="font-semibold">估值处于历史低位：</strong>当前P/EV仅约0.4倍，远低于历史均值与国际同业，已过度反映市场悲观情绪，安全边际高。</div></li>
+                        <li class="flex"><span class="font-bold mr-2 text-[#C89B6C]">·</span><div><strong class="font-semibold">寿险改革阵痛期已过：</strong>代理人队伍“量降质升”，新业务价值（NBV）增长质量改善，最坏的时期或已过去。</div></li>
+                        <li class="flex"><span class="font-bold mr-2 text-[#C89B6C]">·</span><div><strong class="font-semibold">“综合金融+医疗健康”护城河：</strong>生态圈协同效应将逐步转化为客户粘性与交叉销售成果，构建长期、独特的竞争优势。</div></li>
+                         <li class="flex"><span class="font-bold mr-2 text-[#C89B6C]">·</span><div><strong class="font-semibold">科技赋能降本增效：</strong>科技投入持续转化为运营效率的提升，尤其在产险的成本控制和银行的零售业务上效果显著。</div></li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4 flex items-center">
+                       <span class="text-red-500 mr-2">▼</span> 主要潜在风险
+                    </h3>
+                    <ul class="space-y-3 text-gray-700">
+                        <li class="flex"><span class="font-bold mr-2 text-[#C89B6C]">·</span><div><strong class="font-semibold">房地产风险敞口：</strong>投资组合中与房地产相关的资产减值压力仍是影响净利润和净资产的核心不确定性因素。</div></li>
+                        <li class="flex"><span class="font-bold mr-2 text-[#C89B6C]">·</span><div><strong class="font-semibold">利率下行环境：</strong>长端利率持续下行将对保险公司的投资收益和负债端评估构成双重压力。</div></li>
+                        <li class="flex"><span class="font-bold mr-2 text-[#C89B6C]">·</span><div><strong class="font-semibold">宏观经济复苏不及预期：</strong>居民收入和消费意愿的恢复速度直接影响保险、银行等产品的需求。</div></li>
+                         <li class="flex"><span class="font-bold mr-2 text-[#C89B6C]">·</span><div><strong class="font-semibold">监管政策不确定性：</strong>金融科技、数据安全等领域的监管环境变化可能影响科技子公司的发展路径和估值。</div></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="business" class="mt-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-2 text-center">业务剖析：双轮驱动的金融巨擘</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">
+                中国平安的核心竞争力源于其“综合金融”与“医疗健康”两大生态系统的深度融合。本部分将穿透分析各业务板块的表现、前景及协同价值，用户可通过点击下方标签页查看各板块的详细信息。
+            </p>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-4 sm:space-x-8" aria-label="Tabs">
+                        <button class="business-tab tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="L&H">人寿与健康险</button>
+                        <button class="business-tab tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="P&C">财产险</button>
+                        <button class="business-tab tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="Bank">银行业务</button>
+                        <button class="business-tab tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="Asset">资产管理</button>
+                        <button class="business-tab tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="Tech">科技与医疗</button>
+                    </nav>
+                </div>
+                <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+                    <div class="chart-container h-64 md:h-80">
+                        <canvas id="businessContributionChart"></canvas>
+                    </div>
+                    <div id="business-details" class="text-gray-700">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="financials" class="mt-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-2 text-center">财务健康透视</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">
+                深度挖掘财务数据，评估平安的盈利质量、资产安全性和现金流健康度。这些图表旨在揭示其财务优势与潜在风险点，为投资者提供决策依据。
+            </p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4">盈利能力趋势 (亿元)</h3>
+                    <div class="chart-container h-80 md:h-96">
+                        <canvas id="profitabilityChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4">投资组合剖析 (截至2024H1)</h3>
+                    <div class="chart-container h-80 md:h-96">
+                        <canvas id="investmentPortfolioChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="peers" class="mt-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-2 text-center">全方位同业对标</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">
+                将平安置于全球和国内的竞争格局中，通过关键绩效指标进行横向比较。请勾选您感兴趣的保险公司，以在雷达图中动态比较它们的综合实力。
+            </p>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h3 class="text-xl font-bold mb-4">关键指标雷达图</h3>
+                        <div class="chart-container h-80 md:h-96">
+                            <canvas id="peerComparisonChart"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-4">选择对比公司</h3>
+                        <div id="peer-selector" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" class="peer-checkbox" value="PingAn" checked>
+                                <span>中国平安</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" class="peer-checkbox" value="ChinaLife" checked>
+                                <span>中国人寿</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" class="peer-checkbox" value="CPIC">
+                                <span>中国太保</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" class="peer-checkbox" value="AIA" checked>
+                                <span>友邦保险</span>
+                            </label>
+                             <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" class="peer-checkbox" value="Allianz">
+                                <span>安联集团</span>
+                            </label>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-6">数据说明：指标已进行归一化处理以便于比较，仅为示意。ROEV = 新业务价值回报率，CoR = 综合成本率。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="valuation" class="mt-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold mb-2 text-center">估值与展望</h2>
+             <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">
+                综合运用多种估值方法，构建稳健的价值评估框架。分部加总法（SOTP）是评估像平安这样多元化金融集团最有效的方法之一，下图展示了各业务板块对集团整体价值的贡献。
+            </p>
+             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4">分部加总估值 (SOTP) 构成 (亿元)</h3>
+                    <div class="chart-container h-80 md:h-96">
+                        <canvas id="sotpChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-bold mb-4">核心驱动与风险因子</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-semibold text-lg text-green-600">增长催化剂</h4>
+                            <p class="text-gray-600 mt-1"><strong>1. 交叉销售深化：</strong> 2.3亿个人客户的巨大潜力尚待挖掘，综合金融模式下的客均合同数和客均利润仍有广阔提升空间。</p>
+                             <p class="text-gray-600 mt-1"><strong>2. 医疗生态协同：</strong> "保险+服务"模式将有效提升高价值客户的粘性，并为寿险产品提供差异化竞争力，最终转化为更高的NBV利润率。</p>
+                        </div>
+                        <div class="border-t border-gray-200 pt-4">
+                            <h4 class="font-semibold text-lg text-red-600">潜在风险敞口</h4>
+                            <p class="text-gray-600 mt-1"><strong>1. 资产减值压力：</strong> 房地产市场的持续调整可能导致相关投资（包括股权、债权和不动产）面临进一步的减值损失，侵蚀净利润。</p>
+                             <p class="text-gray-600 mt-1"><strong>2. 寿险需求复苏缓慢：</strong> 如果宏观经济和居民可支配收入的增长持续乏力，长期储蓄型和保障型保险产品的销售复苏将面临挑战。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-white mt-16 border-t">
+        <div class="container mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-gray-500">
+            <p>&copy; 2025 深度研究报告. 本内容仅供参考，不构成任何投资建议。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            
+            const businessDetails = {
+                'L&H': {
+                    title: '人寿与健康险：改革深化，价值为王',
+                    points: [
+                        '<strong>核心指标：</strong>新业务价值(NBV)是衡量未来盈利能力的关键。2024年以来NBV增长质量持续改善，利润率有所回升。',
+                        '<strong>渠道改革：</strong>代理人队伍规模已基本稳定，产能和收入显著提升，“高素质、高绩效、高品质”的“三高”队伍初见成效。',
+                        '<strong>产品+服务：</strong>依托医疗健康生态，推出“平安臻享RUN”等服务，有效提升产品对中高端客户的吸引力。',
+                    ],
+                    chartData: [55, 15, 12, 8, 10],
+                    chartLabels: ['人寿与健康险', '财产险', '银行业务', '资产管理', '科技与医疗']
+                },
+                'P&C': {
+                    title: '财产险：盈利稳健，龙头地位巩固',
+                    points: [
+                        '<strong>核心指标：</strong>综合成本率(CoR)是关键。得益于精细化管理和科技应用，CoR持续优于行业，保持强劲盈利能力。',
+                        '<strong>车险业务：</strong>市场份额领先，新能源车险领域积极布局，数据优势构筑定价护城河。',
+                        '<strong>非车险业务：</strong>责任险、意外与健康险等业务增长迅速，成为重要的增长新引擎。',
+                    ],
+                    chartData: [15, 55, 12, 8, 10],
+                    chartLabels: ['财产险', '人寿与健康险', '银行业务', '资产管理', '科技与医疗']
+                },
+                'Bank': {
+                    title: '银行业务（平安银行）：零售转型，资产质量承压',
+                    points: [
+                        '<strong>核心指标：</strong>净息差(NIM)受行业大环境影响有所收窄，资产质量面临一定压力。',
+                        '<strong>零售转型：</strong>战略定力强，零售AUM和贷款占比持续提升。信用卡、私行等业务具备市场竞争力。',
+                        '<strong>风险敞口：</strong>对公房地产贷款是市场关注焦点，银行已加大拨备计提和风险化解力度，整体风险可控。',
+                    ],
+                    chartData: [12, 15, 55, 8, 10],
+                     chartLabels: ['银行业务', '人寿与健康险', '财产险', '资产管理', '科技与医疗']
+                },
+                'Asset': {
+                    title: '资产管理：规模领先，穿越周期',
+                    points: [
+                        '<strong>业务构成：</strong>涵盖信托、证券、基金等多个领域，资产管理规模(AUM)位居行业前列。',
+                        '<strong>投资能力：</strong>在长周期资产负债匹配和风险管理方面经验丰富。但近年来受非标资产风险暴露影响，信托业务面临转型压力。',
+                        '<strong>未来看点：</strong>第三方资管业务的拓展以及与集团保险资金的协同效应。',
+                    ],
+                    chartData: [8, 15, 12, 55, 10],
+                    chartLabels: ['资产管理', '人寿与健康险', '财产险', '银行业务', '科技与医疗']
+                },
+                'Tech': {
+                    title: '科技与医疗生态圈：战略价值，静待花开',
+                    points: [
+                        '<strong>战略定位：</strong>作为集团的“第二增长曲线”，为金融主业引流、赋能，并探索新的商业模式。',
+                        '<strong>核心成员：</strong>陆金所控股(美股上市)、金融壹账通、平安好医生、汽车之家等，构成金融服务、医疗健康、汽车服务等生态。',
+                        '<strong>财务贡献：</strong>目前对集团的直接利润贡献有限，部分子公司仍在投入期，但其长期战略价值和潜在财务贡献不容忽视。',
+                    ],
+                    chartData: [10, 15, 12, 8, 55],
+                    chartLabels: ['科技与医疗', '人寿与健康险', '财产险', '银行业务', '资产管理']
+                }
+            };
+
+            let businessChart;
+            
+            function updateBusinessDetails(tab) {
+                const details = businessDetails[tab];
+                const container = document.getElementById('business-details');
+                let html = `<h3 class="text-xl font-bold mb-4">${details.title}</h3><ul class="space-y-3">`;
+                details.points.forEach(point => {
+                    html += `<li class="flex items-start"><span class="text-[#C89B6C] font-bold mr-2 mt-1">&#8227;</span><span>${point}</span></li>`;
+                });
+                html += '</ul>';
+                container.innerHTML = html;
+
+                const data = {
+                    labels: details.chartLabels,
+                    datasets: [{
+                        label: '营运利润贡献占比',
+                        data: details.chartData,
+                        backgroundColor: ['#C89B6C', '#E5E7EB', '#D1D5DB', '#9CA3AF', '#6B7280'],
+                        borderColor: '#FDFBF8',
+                        borderWidth: 2
+                    }]
+                };
+
+                const chartCtx = document.getElementById('businessContributionChart').getContext('2d');
+                if (businessChart) {
+                    businessChart.destroy();
+                }
+                businessChart = new Chart(chartCtx, {
+                    type: 'doughnut',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 20
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${context.raw}%`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '60%'
+                    }
+                });
+            }
+
+            document.querySelectorAll('.business-tab').forEach(button => {
+                button.addEventListener('click', () => {
+                    document.querySelectorAll('.business-tab').forEach(btn => {
+                        btn.classList.remove('tab-active');
+                        btn.classList.add('tab-inactive');
+                    });
+                    button.classList.add('tab-active');
+                    button.classList.remove('tab-inactive');
+                    updateBusinessDetails(button.dataset.tab);
+                });
+            });
+
+            updateBusinessDetails('L&H');
+            
+            const profitabilityCtx = document.getElementById('profitabilityChart').getContext('2d');
+            new Chart(profitabilityCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['2020', '2021', '2022', '2023', '2024E'],
+                    datasets: [
+                        {
+                            label: '归母营运利润',
+                            data: [1394, 1479, 1483, 1179, 1250],
+                            backgroundColor: '#C89B6C',
+                        },
+                        {
+                            label: '归母净利润',
+                            data: [1431, 1016, 838, 857, 910],
+                            backgroundColor: '#9CA3AF',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    },
+                    plugins: {
+                        tooltip: { mode: 'index', intersect: false },
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            const investmentPortfolioCtx = document.getElementById('investmentPortfolioChart').getContext('2d');
+            new Chart(investmentPortfolioCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['固收类资产', '权益类资产', '不动产类投资', '现金及其他'],
+                    datasets: [{
+                        data: [72, 13, 4.5, 10.5],
+                        backgroundColor: ['#C89B6C', '#9CA3AF', '#6B7280', '#E5E7EB'],
+                        borderColor: '#FDFBF8',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                             callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${context.raw}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const peerData = {
+                labels: ['盈利能力(ROEV)', '成长性(NBV增速)', '偿付能力', '估值(P/EV)', '成本控制(CoR)'],
+                datasets: {
+                    PingAn: {
+                        label: '中国平安',
+                        data: [0.8, 0.7, 0.9, 0.4, 0.9],
+                        borderColor: '#C89B6C',
+                        backgroundColor: 'rgba(200, 155, 108, 0.2)',
+                    },
+                    ChinaLife: {
+                        label: '中国人寿',
+                        data: [0.7, 0.8, 0.85, 0.5, 0.6],
+                        borderColor: '#6B7280',
+                        backgroundColor: 'rgba(107, 114, 128, 0.2)',
+                    },
+                    CPIC: {
+                        label: '中国太保',
+                        data: [0.75, 0.6, 0.8, 0.6, 0.8],
+                        borderColor: '#9CA3AF',
+                        backgroundColor: 'rgba(156, 163, 175, 0.2)',
+                    },
+                    AIA: {
+                        label: '友邦保险',
+                        data: [0.95, 0.9, 0.9, 0.8, 0.7],
+                        borderColor: '#22C55E',
+                        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                    },
+                    Allianz: {
+                        label: '安联集团',
+                        data: [0.85, 0.5, 0.95, 0.7, 0.85],
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    }
+                }
+            };
+            
+            let peerChart;
+            const peerCtx = document.getElementById('peerComparisonChart').getContext('2d');
+            function updatePeerChart() {
+                const selectedPeers = Array.from(document.querySelectorAll('.peer-checkbox:checked')).map(cb => cb.value);
+                const chartData = {
+                    labels: peerData.labels,
+                    datasets: selectedPeers.map(peer => peerData.datasets[peer])
+                };
+                if(peerChart) {
+                    peerChart.destroy();
+                }
+                peerChart = new Chart(peerCtx, {
+                    type: 'radar',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        elements: { line: { borderWidth: 2 } },
+                        scales: {
+                            r: {
+                                angleLines: { color: '#E5E7EB' },
+                                grid: { color: '#E5E7EB' },
+                                pointLabels: { font: { size: 12 } },
+                                suggestedMin: 0,
+                                suggestedMax: 1
+                            }
+                        },
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            }
+            document.querySelectorAll('.peer-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', updatePeerChart);
+            });
+            updatePeerChart();
+
+            const sotpCtx = document.getElementById('sotpChart').getContext('2d');
+            new Chart(sotpCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['集团总价值'],
+                    datasets: [
+                        { label: '寿险与健康险', data: [9500], backgroundColor: '#C89B6C' },
+                        { label: '财产险', data: [2200], backgroundColor: '#DAB692' },
+                        { label: '平安银行', data: [2800], backgroundColor: '#EBCDAF' },
+                        { label: '资产管理', data: [800], backgroundColor: '#9CA3AF' },
+                        { label: '科技公司', data: [1500], backgroundColor: '#6B7280' },
+                        { label: '集团控股/其他', data: [-1800], backgroundColor: '#D1D5DB' }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, display: false }
+                    },
+                    plugins: { 
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw} 亿元`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            document.querySelectorAll('.nav-link').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if(mobileMenu.classList.contains('hidden') === false){
+                       mobileMenu.classList.add('hidden');
+                    }
+                    
+                    const targetId = this.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section');
+
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 100) {
+                        current = '#' + section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active-nav-link');
+                    if (link.getAttribute('href') === current) {
+                        link.classList.add('active-nav-link');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

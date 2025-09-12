@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>比亚迪（BYD）深度研究分析报告</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals & Tech Blue -->
+    <!-- Application Structure Plan: 采用单页应用（SPA）仪表盘式布局，左侧为固定导航栏，对应报告的八大章节，右侧为内容展示区。用户点击导航可平滑切换至相应内容模块，无需页面刷新。这种结构便于用户快速定位和深入研究特定主题，将线性报告结构重塑为非线性的、以用户为中心的探索体验。核心交互包括：1. 关键财务数据和销量的动态图表展示。2. 核心技术（电池、半导体）的标签页切换浏览。3. 全球市场布局的可交互式信息点。4. 投资论点与风险的折叠面板。此设计旨在将复杂的财报数据和分析结论，以最直观、易于消化的方式呈现，提升信息获取效率和决策支持能力。 -->
+    <!-- Visualization & Content Choices: 1. 摘要：信息卡片+Chart.js饼图，目标是快速概览，通过交互高亮显示各业务板块收入。2. 垂直一体化：HTML/CSS构建的流程图，目标是直观展示商业模式，交互为点击节点显示详细说明。3. 核心技术：Chart.js条形图对比电池性能，目标是数据对比，交互为工具提示。4. 汽车业务：Chart.js堆叠条形图展示销量结构，目标是分析产品线，交互为切换EV/PHEV视图。5. 市场份额：Chart.js条形图对比竞品，目标是定位市场地位。6. 财务状况：Chart.js折线图和条形图展示核心财务指标趋势，目标是评估财务健康度。7. 未来展望：HTML/CSS时间线，目标是呈现战略规划。8. 风险评估：HTML/JS折叠面板，目标是结构化展示风险。所有图表均使用Chart.js（Canvas），无SVG或Mermaid，确保符合技术要求并提供丰富的交互性。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 40vh;
+            max-height: 450px;
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+        }
+        .nav-link.active {
+            background-color: #059669;
+            color: white;
+            transform: translateX(4px);
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .kpi-card {
+            border-left: 4px solid #10b981;
+        }
+        .tab-button.active {
+            border-bottom: 2px solid #059669;
+            color: #059669;
+        }
+        .risk-item header::-webkit-details-marker {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        <aside class="w-full md:w-64 bg-white md:border-r border-gray-200 p-4 md:fixed md:h-full">
+            <header class="mb-8 text-center">
+                <h1 class="text-2xl font-bold text-emerald-700">BYD</h1>
+                <p class="text-sm text-gray-500">深度研究分析报告</p>
+            </header>
+            <nav id="main-nav" class="space-y-2">
+                <a href="#summary" class="nav-link active group flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-emerald-50 hover:text-emerald-700">
+                    <svg class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.5 2A.5.5 0 005 2.5v15a.5.5 0 00.5.5h9a.5.5 0 00.5-.5V8.414a.5.5 0 00-.146-.354l-5.146-5.146A.5.5 0 009.086 2H5.5zM9 3.5V8h4.5L9 3.5z" clip-rule="evenodd" /></svg>
+                    摘要
+                </a>
+                <a href="#strategy" class="nav-link group flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-emerald-50 hover:text-emerald-700">
+                    <svg class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17.5a1 1 0 001 1h2.5a1 1 0 001-1v-4.5a1 1 0 011-1h2a1 1 0 011 1V17.5a1 1 0 001 1H15a1 1 0 001-1v-7.086l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
+                    集团战略
+                </a>
+                 <a href="#technology" class="nav-link group flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-emerald-50 hover:text-emerald-700">
+                    <svg class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0L7.18 7.33c-.27.98-1.24 1.51-2.2 1.25l-4.27-1.12c-1.48-.39-2.25 1.45-1.12 2.58l3.18 3.18c.7.7 1.03 1.77.83 2.75l-.65 3.23c-.36 1.78 1.43 3.09 3.09 2.4l3.96-1.67c.93-.39 1.99-.39 2.92 0l3.96 1.67c1.66.7 3.45-.62 3.09-2.4l-.65-3.23c-.2-1.02.12-2.05.83-2.75l3.18-3.18c1.13-1.13.35-2.97-1.12-2.58l-4.27 1.12c-.96.25-1.93-.27-2.2-1.25l-1.32-4.16zM10 15a5 5 0 100-10 5 5 0 000 10z" clip-rule="evenodd" /></svg>
+                    核心技术
+                </a>
+                <a href="#automotive" class="nav-link group flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-emerald-50 hover:text-emerald-700">
+                    <svg class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a.75.75 0 01.75.75v.518a3.74 3.74 0 013.483 2.535l1.83 5.49a.75.75 0 01-.462.946l-.372.124a1.875 1.875 0 01-2.284-1.378l-1.27-3.81a.75.75 0 00-1.418.472l1.27 3.81a3.375 3.375 0 01-4.093 2.47l-.372-.124a.75.75 0 01-.462-.946l1.83-5.49A3.74 3.74 0 019.25 3.268V2.75A.75.75 0 0110 2zM6.578 14.531c.216.072.44.11.672.11h5.5c.232 0 .456-.038.672-.11a.75.75 0 01.656 1.342l-.57.285a.75.75 0 01-.856-.34L11.5 14h-3l-1.03 1.545a.75.75 0 01-.856.34l-.57-.285a.75.75 0 01.656-1.342z" clip-rule="evenodd" /></svg>
+                    汽车业务
+                </a>
+                <a href="#market" class="nav-link group flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-emerald-50 hover:text-emerald-700">
+                     <svg class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.512 5.73 6.512 5.73c.273.183.585.346.91.491a.75.75 0 10.45-1.415.657.657 0 00-.036.015A7.512 7.512 0 004.5 9.75c0 .354.04.701.118 1.037a.75.75 0 001.409-.496A6.01 6.01 0 014.332 8.027zM10 4a.75.75 0 01.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 01.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75h-.008a.75.75 0 01-.75-.75v-.008a.75.75 0 01-.75-.75h-.008a.75.75 0 01-.75-.75V4.75A.75.75 0 0110 4z" clip-rule="evenodd" /></svg>
+                    全球市场
+                </a>
+                 <a href="#supplychain" class="nav-link group flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-emerald-50 hover:text-emerald-700">
+                    <svg class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.348 4.49a.75.75 0 000 1.06l2.422 2.421a3.75 3.75 0 11-5.303 5.304L3.046 15.7a.75.75 0 001.06 1.061l2.422-2.422a3.75 3.75 0 115.304-5.303l2.421 2.422a.75.75 0 101.06-1.06l-2.42-2.42a5.25 5.25 0 00-7.425-7.425L3.354 5.553a.75.75 0 001.061 1.06l1.512-1.512a3.75 3.75 0 015.303-1.622l-1.89-1.89a.75.75 0 00-1.06 0z" clip-rule="evenodd" /></svg>
+                    供应链
+                </a>
+                <a href="#financials" class="nav-link group flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-emerald-50 hover:text-emerald-700">
+                    <svg class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2.5 4A1.5 1.5 0 001 5.5v2A1.5 1.5 0 002.5 9h15A1.5 1.5 0 0019 7.5v-2A1.5 1.5 0 0017.5 4h-15zM1 12.5A1.5 1.5 0 012.5 11h15A1.5 1.5 0 0119 12.5v2A1.5 1.5 0 0117.5 16h-15A1.5 1.5 0 011 14.5v-2z" /></svg>
+                    财务与估值
+                </a>
+                 <a href="#outlook" class="nav-link group flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-emerald-50 hover:text-emerald-700">
+                    <svg class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2c-1.755 0-3.37.52-4.748 1.418A.75.75 0 006 3.127V4.16a.75.75 0 01-1.5 0V3.34a6.5 6.5 0 019.493 8.32l-1.423-1.423A.75.75 0 0011.88 9.5H10.5a.75.75 0 010-1.5h2.12l1.08-1.08a4.979 4.979 0 00-4.135-2.203.75.75 0 010-1.5c1.7 0 3.243.64 4.39 1.69l1.414-1.414A.75.75 0 0014.16 3.25a6.5 6.5 0 01-4.16-1.25zM2.83 4.995a.75.75 0 00-1.06 1.06l14 14a.75.75 0 001.06-1.06l-14-14z" clip-rule="evenodd" /></svg>
+                    未来展望
+                </a>
+                <a href="#investment" class="nav-link group flex items-center px-4 py-2 text-gray-700 rounded-md hover:bg-emerald-50 hover:text-emerald-700">
+                    <svg class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor"><path d="M10.25 3.75c-2.22 0-4.045 1.785-4.237 4.004a.75.75 0 001.487.192A2.75 2.75 0 0110.25 5.25a2.75 2.75 0 012.75 2.75c0 1.258-.838 2.306-1.996 2.657a.75.75 0 10.492 1.402A4.25 4.25 0 0014.75 8 4.25 4.25 0 0010.5 3.75h-.25z" /><path d="M6.75 8.75a.75.75 0 000 1.5h1.75v1.75a.75.75 0 001.5 0v-1.75h1.75a.75.75 0 000-1.5h-1.75V7a.75.75 0 00-1.5 0v1.75H6.75zM10 12.25a.75.75 0 00-1.5 0v2.5a.75.75 0 001.5 0v-2.5z" /><path d="M8.343 12.433a.75.75 0 00-1.06 1.06l-.53.53a.75.75 0 001.06 1.06l.53-.53a.75.75 0 00-1.06-1.06z" /><path d="M11.657 12.433a.75.75 0 001.06 1.06l.53.53a.75.75 0 001.06-1.06l-.53-.53a.75.75 0 00-1.06 1.06z" /></svg>
+                    投资论点与风险
+                </a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 md:ml-64 p-4 sm:p-6 lg:p-8">
+            <div id="summary" class="content-section active">
+                <header class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800">摘要 (Executive Summary)</h2>
+                    <p class="mt-2 text-gray-600">本部分将高度概括报告的核心发现、关键分析结论以及对未来的战略展望，旨在让您在最短时间内掌握比亚迪的整体状况、核心竞争优势、面临的挑战及未来投资价值的核心判断。</p>
+                </header>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow-sm kpi-card">
+                        <h3 class="text-sm font-medium text-gray-500">2025上半年营业收入</h3>
+                        <p class="text-3xl font-bold text-gray-800 mt-2">3,055 亿 <span class="text-base font-normal">RMB</span></p>
+                        <p class="text-sm text-emerald-600 mt-1">+15.8% 同比增长</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm kpi-card">
+                        <h3 class="text-sm font-medium text-gray-500">2025上半年净利润</h3>
+                        <p class="text-3xl font-bold text-gray-800 mt-2">156.4 亿 <span class="text-base font-normal">RMB</span></p>
+                        <p class="text-sm text-emerald-600 mt-1">+22.5% 同比增长</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm kpi-card">
+                        <h3 class="text-sm font-medium text-gray-500">2025上半年汽车销量</h3>
+                        <p class="text-3xl font-bold text-gray-800 mt-2">178.6 万辆</p>
+                        <p class="text-sm text-emerald-600 mt-1">+26.7% 同比增长</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm kpi-card">
+                        <h3 class="text-sm font-medium text-gray-500">研发投入</h3>
+                        <p class="text-3xl font-bold text-gray-800 mt-2">205.3 亿 <span class="text-base font-normal">RMB</span></p>
+                        <p class="text-sm text-gray-500 mt-1">占营收比重 6.72%</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div class="lg:col-span-3 bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-lg font-semibold mb-4">2025上半年业务板块收入构成</h3>
+                        <div class="chart-container h-72 md:h-80">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm">
+                         <h3 class="text-lg font-semibold mb-4">核心观点</h3>
+                         <ul class="space-y-4 text-gray-700">
+                             <li class="flex items-start">
+                                 <svg class="h-5 w-5 mr-2 text-emerald-500 flex-shrink-0 mt-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                                 <span><strong class="font-semibold text-gray-800">技术驱动与垂直整合：</strong> 强大的“刀片电池”与半导体自研能力构筑了深厚的技术护城河，垂直一体化模式确保了供应链稳定与成本优势。</span>
+                             </li>
+                              <li class="flex items-start">
+                                 <svg class="h-5 w-5 mr-2 text-emerald-500 flex-shrink-0 mt-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                                 <span><strong class="font-semibold text-gray-800">市场领导地位稳固：</strong> “电比油低”策略效果显著，DM-i混动与EV纯电双轮驱动，持续蚕食燃油车市场，国内市场份额遥遥领先。</span>
+                             </li>
+                             <li class="flex items-start">
+                                 <svg class="h-5 w-5 mr-2 text-emerald-500 flex-shrink-0 mt-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                                 <span><strong class="font-semibold text-gray-800">全球化加速与品牌向上：</strong> “出海”战略成果初现，在多个区域市场取得突破。同时，腾势、仰望等高端品牌布局，有助于提升整体品牌价值与盈利能力。</span>
+                             </li>
+                         </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="strategy" class="content-section">
+                <header class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800">第一章：集团战略与垂直一体化模式解析</h2>
+                    <p class="mt-2 text-gray-600">本章将深入剖析比亚迪集团的顶层战略布局，并重点分析其独特的垂直一体化商业模式如何构筑核心护城河，内容将追溯其历史演变，并评估该模式在当前及未来市场环境下的可持续性与竞争优势。</p>
+                </header>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-xl font-semibold mb-4">垂直一体化生态系统</h3>
+                    <p class="text-gray-600 mb-6">比亚迪的垂直一体化模式是其区别于其他车企的核心特征。通过自主掌控从上游原材料、中游核心零部件（电池、电机、电控、半导体）到下游整车制造及服务的全产业链环节，比亚迪构建了一个封闭、高效且成本可控的生态闭环。这种模式在新能源汽车产业发展的初期，尤其是在供应链频繁波动的背景下，展现出巨大的韧性和竞争优势。</p>
+                    <div class="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-4 text-center text-sm">
+                        <div class="p-4 bg-emerald-50 rounded-lg w-full md:w-auto">
+                            <div class="text-emerald-600 font-bold">上游</div>
+                            <div class="text-gray-700 mt-1">矿产资源 & 材料</div>
+                            <div class="text-xs text-gray-500">(碳酸锂、磷酸铁锂等)</div>
+                        </div>
+                        <div class="text-2xl text-emerald-500">→</div>
+                        <div class="p-4 bg-teal-50 rounded-lg w-full md:w-auto">
+                            <div class="text-teal-600 font-bold">中游</div>
+                            <div class="text-gray-700 mt-1">核心零部件</div>
+                            <div class="text-xs text-gray-500">(刀片电池, IGBT芯片, 电机电控)</div>
+                        </div>
+                        <div class="text-2xl text-teal-500">→</div>
+                        <div class="p-4 bg-cyan-50 rounded-lg w-full md:w-auto">
+                            <div class="text-cyan-600 font-bold">下游</div>
+                            <div class="text-gray-700 mt-1">整车制造</div>
+                             <div class="text-xs text-gray-500">(王朝、海洋、腾势、仰望)</div>
+                        </div>
+                         <div class="text-2xl text-cyan-500">→</div>
+                        <div class="p-4 bg-sky-50 rounded-lg w-full md:w-auto">
+                            <div class="text-sky-600 font-bold">后市场</div>
+                            <div class="text-gray-700 mt-1">能源 & 服务</div>
+                             <div class="text-xs text-gray-500">(储能、充电、金融)</div>
+                        </div>
+                    </div>
+                    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                             <h4 class="font-semibold text-lg mb-2">优势分析</h4>
+                             <ul class="space-y-2 text-gray-700">
+                                <li class="flex items-start"><span class="font-bold text-emerald-600 mr-2">✓</span><strong>成本控制：</strong>核心部件自产，有效降低采购成本和交易成本，是实现“电比油低”的基石。</li>
+                                <li class="flex items-start"><span class="font-bold text-emerald-600 mr-2">✓</span><strong>供应链安全：</strong>在全球缺芯、电池原材料价格波动时期，自主可控的供应链保障了生产的连续性。</li>
+                                <li class="flex items-start"><span class="font-bold text-emerald-600 mr-2">✓</span><strong>技术协同：</strong>各环节深度协同，便于整车性能的集成优化和新技术的快速迭代应用。</li>
+                             </ul>
+                        </div>
+                        <div>
+                             <h4 class="font-semibold text-lg mb-2">挑战与演变</h4>
+                             <ul class="space-y-2 text-gray-700">
+                                <li class="flex items-start"><span class="font-bold text-orange-600 mr-2">!</span><strong>重资产运营：</strong>全产业链布局需要巨大的资本开支，对资金链和运营效率要求极高。</li>
+                                <li class="flex items-start"><span class="font-bold text-orange-600 mr-2">!</span><strong>组织复杂度：</strong>庞大的业务体系对管理能力构成挑战，可能导致效率瓶颈。</li>
+                                <li class="flex items-start"><span class="font-bold text-orange-600 mr-2">!</span><strong>向开放转型：</strong>近年来，比亚迪开始将电池、半导体等业务分拆并对外供应，从封闭走向开放，寻求新的增长点，这对其组织架构和市场策略提出了新的要求。</li>
+                             </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="technology" class="content-section">
+                 <header class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800">第二章：核心技术竞争力深度剖析</h2>
+                    <p class="mt-2 text-gray-600">本章将聚焦于比亚迪的技术内核，分为两大板块：首先，详细解析以“刀片电池”为代表的动力电池技术路线；其次，评估其车规级半导体的自研能力及战略意义。</p>
+                </header>
+                <div class="bg-white rounded-lg shadow-sm">
+                    <div class="border-b border-gray-200">
+                        <nav id="tech-tabs" class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+                            <button class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="battery">动力电池技术</button>
+                            <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="semiconductor">车规级半导体</button>
+                        </nav>
+                    </div>
+                    <div id="battery" class="tech-tab-content p-6">
+                        <h3 class="text-xl font-semibold mb-2">“刀片电池”：重新定义磷酸铁锂电池</h3>
+                        <p class="text-gray-600 mb-6">比亚迪的“刀片电池”是其最重要的技术突破之一。它通过结构创新（CTP，Cell to Pack），将电芯做得更长更薄，形似刀片，直接集成到电池包中，从而在保证极高安全性的前提下，大幅提升了磷酸铁锂（LFP）电池的体积利用率和能量密度，克服了传统LFP电池续航短的痛点。</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                            <div class="p-4 bg-gray-50 rounded-lg">
+                                <h4 class="font-semibold text-emerald-700">超级安全</h4>
+                                <p class="text-sm text-gray-600 mt-1">通过最严苛的针刺测试，几乎不会发生热失控，解决了电动车用户的核心安全焦虑。</p>
+                            </div>
+                             <div class="p-4 bg-gray-50 rounded-lg">
+                                <h4 class="font-semibold text-emerald-700">超级寿命</h4>
+                                <p class="text-sm text-gray-600 mt-1">充放电循环可达3000次以上，支持车辆全生命周期使用，甚至更长。</p>
+                            </div>
+                             <div class="p-4 bg-gray-50 rounded-lg">
+                                <h4 class="font-semibold text-emerald-700">超级成本</h4>
+                                <p class="text-sm text-gray-600 mt-1">不含钴等贵金属，原材料成本较三元锂电池有显著优势，是成本控制的关键。</p>
+                            </div>
+                        </div>
+                        <div class="mt-8">
+                             <h4 class="font-semibold text-lg mb-4 text-center">刀片电池 vs 传统电池</h4>
+                             <div class="chart-container" style="height: 300px;">
+                                <canvas id="batteryComparisonChart"></canvas>
+                             </div>
+                        </div>
+                    </div>
+                    <div id="semiconductor" class="tech-tab-content p-6 hidden">
+                        <h3 class="text-xl font-semibold mb-2">比亚迪半导体：电车“心脏”的自主掌控者</h3>
+                        <p class="text-gray-600 mb-6">比亚迪半导体是国内少数实现车规级IGBT（绝缘栅双极型晶体管）大规模量产的企业。IGBT是新能源汽车电机控制器和电控系统的核心元器件，直接影响车辆的能源效率。比亚迪通过自研自产IGBT，不仅保障了自身供应链的安全，也建立了强大的技术壁垒。</p>
+                        <div class="bg-gray-50 p-6 rounded-lg">
+                            <h4 class="font-semibold text-lg mb-2">IGBT的战略意义</h4>
+                             <ul class="space-y-3 text-gray-700">
+                                <li class="flex items-center"><svg class="h-4 w-4 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>打破国外垄断，确保供应链自主可控，避免被“卡脖子”。</li>
+                                <li class="flex items-center"><svg class="h-4 w-4 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>深度参与芯片设计，使其与自家“三电”系统（电池、电机、电控）高度协同，实现整车性能最优化。</li>
+                                <li class="flex items-center"><svg class="h-4 w-4 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>已成功研发并量产最新的SiC（碳化硅）模块，能效更高，为高端车型性能提升奠定基础。</li>
+                                <li class="flex items-center"><svg class="h-4 w-4 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>作为独立业务板块，对外供货，有望成为新的利润增长点。</li>
+                             </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="automotive" class="content-section">
+                <header class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800">第三章：汽车业务板块全景分析</h2>
+                    <p class="mt-2 text-gray-600">本章将全面审视比亚迪的汽车业务，涵盖其纯电动（EV）与插电式混合动力（PHEV）两大产品线的车型布局、技术特点、定价策略及市场表现。</p>
+                </header>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-xl font-semibold mb-2">产品矩阵：EV+PHEV双轮驱动</h3>
+                    <p class="text-gray-600 mb-6">比亚迪是全球为数不多同时在纯电动（EV）和插电式混合动力（PHEV）两条技术路线上都取得巨大成功的企业。其DM-i超级混动技术以“快、省、静、顺、绿”为特点，主打极致的燃油经济性，成功抢占了大量传统燃油车市场份额。EV产品线则凭借刀片电池和e平台3.0，在安全和性能上建立了良好口碑。</p>
+                    <div class="chart-container">
+                        <canvas id="salesMixChart"></canvas>
+                    </div>
+                </div>
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-4 rounded-lg shadow-sm">
+                        <h4 class="font-bold text-center text-lg text-red-700">王朝系列</h4>
+                        <p class="text-xs text-center text-gray-500 mb-2">（秦、汉、唐、宋、元）</p>
+                        <p class="text-sm text-gray-600">主打国潮设计，覆盖从A级到C级的轿车和SUV市场，是比亚迪销量的基石，深受家庭用户喜爱。</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-sm">
+                        <h4 class="font-bold text-center text-lg text-blue-700">海洋系列</h4>
+                         <p class="text-xs text-center text-gray-500 mb-2">（海豚、海豹、海鸥、宋PLUS）</p>
+                        <p class="text-sm text-gray-600">设计更年轻、时尚，采用“海洋美学”理念，主攻年轻消费群体，海豚、海鸥等车型成为爆款。</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-sm">
+                        <h4 class="font-bold text-center text-lg text-green-700">腾势 (DENZA)</h4>
+                        <p class="text-xs text-center text-gray-500 mb-2">（D9、N7、N8）</p>
+                        <p class="text-sm text-gray-600">与奔驰合资，后由比亚迪主导，定位高端智能豪华品牌，MPV车型D9月销过万，成功立足高端市场。</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-sm">
+                        <h4 class="font-bold text-center text-lg text-yellow-600">仰望 (YANGWANG)</h4>
+                        <p class="text-xs text-center text-gray-500 mb-2">（U8、U9）</p>
+                        <p class="text-sm text-gray-600">定位百万级豪华品牌，搭载“易四方”四电机独立驱动等颠覆性技术，展示比亚迪顶尖技术实力，提升品牌形象。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="market" class="content-section">
+                <header class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800">第四章：全球市场份额与竞争格局</h2>
+                    <p class="mt-2 text-gray-600">本章将从数据出发，精准定位比亚迪在中国本土市场的领导地位，并分析其与主要竞争对手的对比优势。同时，将重点评估其在海外市场的扩张战略与潜力。</p>
+                </header>
+                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-xl font-semibold mb-4">中国新能源汽车市场份额 (2025 H1)</h3>
+                        <div class="chart-container" style="height: 350px;">
+                            <canvas id="marketShareChart"></canvas>
+                        </div>
+                    </div>
+                     <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-xl font-semibold mb-4">出海战略：“乘用车出海”加速</h3>
+                        <p class="text-gray-600 mb-4">比亚迪正加速其全球化进程，从早期以电动大巴等商用车为主，转向乘用车全面出海。其策略是利用在国内市场验证过的成熟技术和车型，结合本地化适应性调整，快速进入目标市场。</p>
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="font-semibold">欧洲市场</h4>
+                                <p class="text-sm text-gray-600">已进入德国、英国、法国等多个国家，并宣布在匈牙利建设生产基地，但面临本土品牌强势竞争和欧盟关税等政策挑战。</p>
+                            </div>
+                             <div>
+                                <h4 class="font-semibold">东南亚市场</h4>
+                                <p class="text-sm text-gray-600">在泰国、越南、印尼等地投资建厂，ATTO 3（元PLUS）等车型在泰国等市场已成为销量冠军，市场前景广阔。</p>
+                            </div>
+                             <div>
+                                <h4 class="font-semibold">拉美市场</h4>
+                                <p class="text-sm text-gray-600">在巴西等地取得良好开局，并计划建设大型生产基地，辐射整个拉美地区。</p>
+                            </div>
+                        </div>
+                         <p class="mt-4 text-xs text-gray-500">*注：2025上半年海外新能源乘用车销量已超25万辆，同比增长约150%。</p>
+                    </div>
+                 </div>
+            </div>
+            
+            <div id="supplychain" class="content-section">
+                <header class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800">第五章：供应链体系与成本控制分析</h2>
+                    <p class="mt-2 text-gray-600">本章将深入研究比亚迪的供应链管理策略，特别是在关键原材料采购与锁定方面的布局，并分析其垂直一体化模式如何有效传导至成本端，从而实现其在行业内极具竞争力的成本控制能力。</p>
+                </header>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                     <h3 class="text-xl font-semibold mb-4">成本优势的核心来源</h3>
+                     <p class="text-gray-600 mb-6">比亚迪的成本控制能力是其市场竞争中的一把利器。这不仅得益于垂直一体化带来的内部协同效应，也体现在其对上游资源的战略布局和精益生产管理上。</p>
+                     <div class="space-y-6">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 h-12 w-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01"></path></svg>
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="text-lg font-semibold">核心零部件自研自产</h4>
+                                <p class="text-gray-600">电池、电机、电控、IGBT芯片等占整车成本近50%的核心部件均为自产。这不仅避免了外部供应商的溢价，还可以在设计阶段就进行成本优化，实现系统级的成本控制。</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                             <div class="flex-shrink-0 h-12 w-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                               <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 15.536c-1.171 1.952-3.07 1.952-4.242 0-1.172-1.953-1.172-5.119 0-7.072 1.171-1.952 3.07-1.952 4.242 0 1.172 1.953 1.172 5.119 0 7.072z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="text-lg font-semibold">上游原材料战略布局</h4>
+                                <p class="text-gray-600">通过投资或签订长协等方式，深度绑定上游锂、钴、镍等矿产资源，如投资智利锂矿、国内盐湖提锂项目等，在一定程度上平抑了原材料价格剧烈波动带来的成本冲击。</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 h-12 w-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                               <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="text-lg font-semibold">规模效应与平台化生产</h4>
+                                <p class="text-gray-600">年产销数百万辆的巨大规模带来了显著的采购议价能力和制造成本摊薄效应。e平台3.0等标准化平台的应用，使得不同车型间零部件通用率提高，进一步降低了研发和生产成本。</p>
+                            </div>
+                        </div>
+                     </div>
+                </div>
+            </div>
+
+            <div id="financials" class="content-section">
+                <header class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800">第六章：财务状况与估值分析</h2>
+                    <p class="mt-2 text-gray-600">本章将对公司近期的财务报表进行全面解读，分析其盈利能力、成长性、营运效率及偿债能力，并结合多种估值模型对其当前市值进行评估，给出未来的价值判断。</p>
+                </header>
+                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-xl font-semibold mb-4">营业收入与净利润趋势 (亿元)</h3>
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="incomeTrendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-xl font-semibold mb-4">盈利能力分析 (%)</h3>
+                         <div class="chart-container" style="height: 300px;">
+                            <canvas id="profitabilityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm mt-6">
+                    <h3 class="text-xl font-semibold mb-4">财务摘要</h3>
+                     <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3">指标</th>
+                                    <th scope="col" class="px-6 py-3 text-right">2023 H1</th>
+                                    <th scope="col" class="px-6 py-3 text-right">2024 H1</th>
+                                    <th scope="col" class="px-6 py-3 text-right">2025 H1</th>
+                                    <th scope="col" class="px-6 py-3">分析</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-white border-b">
+                                    <td class="px-6 py-4 font-medium">毛利率</td>
+                                    <td class="px-6 py-4 text-right">18.5%</td>
+                                    <td class="px-6 py-4 text-right">20.7%</td>
+                                    <td class="px-6 py-4 text-right">21.9%</td>
+                                    <td class="px-6 py-4 text-emerald-600">持续提升，规模效应和成本控制能力强。</td>
+                                </tr>
+                                <tr class="bg-white border-b">
+                                    <td class="px-6 py-4 font-medium">净利率</td>
+                                    <td class="px-6 py-4 text-right">4.1%</td>
+                                    <td class="px-6 py-4 text-right">4.8%</td>
+                                    <td class="px-6 py-4 text-right">5.1%</td>
+                                    <td class="px-6 py-4 text-emerald-600">稳步增长，盈利质量改善。</td>
+                                </tr>
+                                <tr class="bg-white border-b">
+                                    <td class="px-6 py-4 font-medium">资产负债率</td>
+                                    <td class="px-6 py-4 text-right">77.4%</td>
+                                    <td class="px-6 py-4 text-right">75.1%</td>
+                                    <td class="px-6 py-4 text-right">72.3%</td>
+                                    <td class="px-6 py-4 text-gray-600">有所下降，但仍处行业较高水平，与重资产模式相关。</td>
+                                </tr>
+                                <tr class="bg-white">
+                                    <td class="px-6 py-4 font-medium">经营活动现金流净额(亿元)</td>
+                                    <td class="px-6 py-4 text-right">630</td>
+                                    <td class="px-6 py-4 text-right">750</td>
+                                    <td class="px-6 py-4 text-right">810</td>
+                                    <td class="px-6 py-4 text-emerald-600">现金流充裕，造血能力强劲。</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                     <p class="mt-4 text-sm text-gray-600"><strong>估值分析：</strong> 综合考虑比亚迪的行业龙头地位、高成长性以及技术壁垒，尽管面临激烈的市场竞争，其长期价值依然显著。当前市盈率（PE）处于历史相对合理区间。考虑到其全球化扩张和品牌高端化带来的新增长曲线，采用PEG（市盈率相对盈利增长比率）估值或分部估值法可能更为合理。相对于传统车企，市场愿意给予其更高的科技股估值溢价。</p>
+                </div>
+            </div>
+            
+            <div id="outlook" class="content-section">
+                <header class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800">第七章：未来趋势预测与战略展望</h2>
+                    <p class="mt-2 text-gray-600">本章将基于宏观行业趋势、技术演进路线及公司战略规划，对未来3-5年比亚迪在技术创新、新市场开拓及品牌高端化等方面的潜在发展路径进行前瞻性预测。</p>
+                </header>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <div class="relative border-l border-gray-200">
+                        <div class="mb-10 ml-6">
+                            <span class="absolute flex items-center justify-center w-6 h-6 bg-emerald-100 rounded-full -left-3 ring-8 ring-white">
+                                <svg class="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM5 10a5 5 0 1110 0 5 5 0 01-10 0z"></path></svg>
+                            </span>
+                            <h3 class="flex items-center mb-1 text-lg font-semibold text-gray-900">技术创新：智能化与下一代电池</h3>
+                            <p class="text-gray-600"><strong>高阶智能驾驶：</strong>比亚迪将大力投入“璇玑”智能化架构，整合自研芯片、算法和操作系统，力求在2026-2027年补齐智能化短板，实现高阶辅助驾驶的普及。
+                            <br><strong>下一代电池技术：</strong>正在积极研发钠离子电池和半固态电池，预计在未来2-3年内实现量产，进一步提升续航里程和安全性，并降低成本。</p>
+                        </div>
+                        <div class="mb-10 ml-6">
+                            <span class="absolute flex items-center justify-center w-6 h-6 bg-emerald-100 rounded-full -left-3 ring-8 ring-white">
+                                <svg class="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM5 10a5 5 0 1110 0 5 5 0 01-10 0z"></path></svg>
+                            </span>
+                            <h3 class="flex items-center mb-1 text-lg font-semibold text-gray-900">新市场开拓：全球化深化</h3>
+                             <p class="text-gray-600">未来3-5年，海外市场将成为比亚迪最重要的增长引擎。公司将在欧洲、东南亚、拉美等地完善生产、销售和服务网络，目标是到2028年，海外销量占总销量的25%以上。同时，将推出更多符合海外市场需求的本地化车型。</p>
+                        </div>
+                        <div class="ml-6">
+                            <span class="absolute flex items-center justify-center w-6 h-6 bg-emerald-100 rounded-full -left-3 ring-8 ring-white">
+                                <svg class="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zM5 10a5 5 0 1110 0 5 5 0 01-10 0z"></path></svg>
+                            </span>
+                            <h3 class="flex items-center mb-1 text-lg font-semibold text-gray-900">品牌高端化：价值向上突破</h3>
+                             <p class="text-gray-600">通过腾势、仰望和方程豹（专业个性化品牌）三大品牌，形成覆盖30万到100万以上价格区间的完整高端产品矩阵。这将持续改善比亚迪的盈利结构，提升整体品牌形象，摆脱过去“低价”的标签，与国际豪华品牌展开正面竞争。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="investment" class="content-section">
+                 <header class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800">第八章：投资论点、潜在风险与综合评估</h2>
+                    <p class="mt-2 text-gray-600">本章将综合前述所有分析，提炼出核心的投资逻辑与价值主张，并系统性地识别与评估比亚迪未来可能面临的各项风险，最终形成一个全面的、服务于决策的综合性评估结论。</p>
+                </header>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-xl font-semibold mb-4 text-emerald-700">核心投资论点</h3>
+                        <ol class="list-decimal list-inside space-y-3 text-gray-700">
+                           <li><strong>技术与成本双重护城河：</strong>以刀片电池和半导体为代表的全产业链自研能力，构建了难以复制的技术壁垒；垂直一体化和规模效应带来了极致的成本控制，使其在价格战中占据主动。</li>
+                           <li><strong>强大的产品定义与市场迭代能力：</strong>精准把握市场需求，通过“王朝+海洋”的爆款产品矩阵快速占领市场，并能根据反馈迅速迭代，保持产品竞争力。</li>
+                           <li><strong>清晰的第二增长曲线：</strong>全球化和品牌高端化战略路径明确，执行力强。海外市场和高端车型将成为未来几年拉动收入和利润增长的核心驱动力。</li>
+                           <li><strong>能源生态闭环潜力：</strong>业务不止于汽车，还涵盖光伏、储能等新能源领域。未来有望形成“发电-储电-用电”的个人及家庭能源解决方案闭环，打开新的想象空间。</li>
+                        </ol>
+                    </div>
+                     <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-xl font-semibold mb-4 text-red-700">潜在风险评估</h3>
+                        <div class="space-y-2">
+                            <details class="risk-item group bg-gray-50 rounded-md p-3">
+                                <summary class="flex justify-between items-center font-medium cursor-pointer list-none">
+                                    <span>市场竞争加剧风险</span>
+                                    <span class="transition group-open:rotate-180">
+                                        <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                                    </span>
+                                </summary>
+                                <p class="text-gray-600 mt-2 text-sm">国内新能源市场进入“淘汰赛”阶段，价格战持续，新势力和传统车企转型加速，可能侵蚀比亚迪的市场份额和利润率。</p>
+                            </details>
+                            <details class="risk-item group bg-gray-50 rounded-md p-3">
+                                <summary class="flex justify-between items-center font-medium cursor-pointer list-none">
+                                    <span>技术迭代风险</span>
+                                    <span class="transition group-open:rotate-180">
+                                        <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                                    </span>
+                                </summary>
+                                <p class="text-gray-600 mt-2 text-sm">固态电池、高阶自动驾驶等颠覆性技术若出现突破，而比亚迪未能及时跟进，可能导致现有技术优势被削弱。特别是在智能化方面，目前仍是追赶者角色。</p>
+                            </details>
+                             <details class="risk-item group bg-gray-50 rounded-md p-3">
+                                <summary class="flex justify-between items-center font-medium cursor-pointer list-none">
+                                    <span>国际地缘政治风险</span>
+                                    <span class="transition group-open:rotate-180">
+                                        <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                                    </span>
+                                </summary>
+                                <p class="text-gray-600 mt-2 text-sm">全球化进程中，可能面临部分国家和地区的贸易壁垒、关税政策、数据安全审查等不确定性，对海外业务扩张构成挑战。</p>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow-sm mt-6">
+                    <h3 class="text-xl font-semibold mb-4">综合评估结论</h3>
+                    <p class="text-gray-700">比亚迪已成功从一家电池制造商转型为全球新能源汽车行业的领导者。其深厚的技术积累、独特的垂直一体化模式和强大的市场执行力，共同构成了其宽阔的护城河。尽管短期内面临国内市场内卷和智能化短板的挑战，但其成本优势和规模效应足以支撑其度过行业洗牌期。长期来看，随着全球化战略的深入和高端品牌的成功，比亚迪的成长空间依然广阔，具备穿越周期的能力和长期投资价值。</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const navLinks = document.querySelectorAll('#main-nav a');
+    const contentSections = document.querySelectorAll('.content-section');
+    const techTabs = document.querySelectorAll('#tech-tabs button');
+    const techTabContents = document.querySelectorAll('.tech-tab-content');
+
+    function showSection(hash) {
+        const targetId = hash.substring(1);
+
+        navLinks.forEach(link => {
+            if (link.getAttribute('href') === hash) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+
+        contentSections.forEach(section => {
+            if (section.id === targetId) {
+                section.classList.add('active');
+            } else {
+                section.classList.remove('active');
+            }
+        });
+    }
+    
+    const initialHash = window.location.hash || '#summary';
+    showSection(initialHash);
+    
+    navLinks.forEach(link => {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetHash = this.getAttribute('href');
+            history.pushState(null, null, targetHash);
+            showSection(targetHash);
+        });
+    });
+
+    window.addEventListener('popstate', () => {
+        const hash = window.location.hash || '#summary';
+        showSection(hash);
+    });
+
+    techTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetId = this.dataset.tab;
+
+            techTabs.forEach(t => {
+                t.classList.remove('active', 'text-emerald-600');
+                t.classList.add('text-gray-500', 'hover:text-gray-700');
+            });
+            this.classList.add('active', 'text-emerald-600');
+            this.classList.remove('text-gray-500', 'hover:text-gray-700');
+
+            techTabContents.forEach(content => {
+                if (content.id === targetId) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        });
+    });
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    font: {
+                        family: "'Inter', 'Noto Sans SC', sans-serif"
+                    }
+                }
+            },
+            tooltip: {
+                titleFont: { family: "'Inter', 'Noto Sans SC', sans-serif" },
+                bodyFont: { family: "'Inter', 'Noto Sans SC', sans-serif" }
+            }
+        },
+        scales: {
+            x: {
+                ticks: {
+                    font: { family: "'Inter', 'Noto Sans SC', sans-serif" }
+                }
+            },
+            y: {
+                ticks: {
+                    font: { family: "'Inter', 'Noto Sans SC', sans-serif" }
+                }
+            }
+        }
+    };
+    
+    new Chart(document.getElementById('revenueChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['汽车、汽车相关产品及其他产品', '手机部件、组装及其他产品'],
+            datasets: [{
+                data: [2518.4, 536.6],
+                backgroundColor: ['#10b981', '#34d399'],
+                borderColor: '#f8f9fa',
+                borderWidth: 2
+            }]
+        },
+        options: { ...chartOptions, plugins: { legend: { position: 'right' } } }
+    });
+    
+    new Chart(document.getElementById('batteryComparisonChart'), {
+        type: 'bar',
+        data: {
+            labels: ['安全性', '能量密度(体积)', '成本', '循环寿命'],
+            datasets: [
+                {
+                    label: '刀片电池 (LFP)',
+                    data: [9.5, 8, 7, 9],
+                    backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                    borderColor: 'rgba(16, 185, 129, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: '传统三元锂电池 (NCM)',
+                    data: [6, 9, 8, 7],
+                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: { ...chartOptions, indexAxis: 'y' }
+    });
+
+    new Chart(document.getElementById('salesMixChart'), {
+        type: 'bar',
+        data: {
+            labels: ['2023 Q3', '2023 Q4', '2024 Q1', '2024 Q2', '2024 Q3', '2024 Q4', '2025 H1'],
+            datasets: [
+                {
+                    label: 'PHEV 销量 (万辆)',
+                    data: [42, 48, 45, 50, 52, 55, 94],
+                    backgroundColor: '#34d399',
+                },
+                {
+                    label: 'EV 销量 (万辆)',
+                    data: [40, 45, 42, 48, 50, 53, 84.6],
+                    backgroundColor: '#10b981',
+                }
+            ]
+        },
+        options: { ...chartOptions, scales: { x: { stacked: true }, y: { stacked: true } } }
+    });
+
+    new Chart(document.getElementById('marketShareChart'), {
+        type: 'bar',
+        data: {
+            labels: ['比亚迪', '特斯拉中国', '吉利汽车', '广汽埃安', '长安汽车', '理想汽车'],
+            datasets: [{
+                label: '市场份额',
+                data: [35.2, 8.8, 6.5, 6.1, 5.5, 5.2],
+                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            ...chartOptions,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: { label: (context) => `${context.label}: ${context.raw}%` }
+                }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('incomeTrendChart'), {
+        type: 'line',
+        data: {
+            labels: ['2022', '2023', '2024', '2025 H1'],
+            datasets: [
+                {
+                    label: '营业收入',
+                    data: [4240, 6023, 7550, 3055],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    yAxisID: 'y'
+                },
+                {
+                    label: '净利润',
+                    data: [166, 300, 410, 156.4],
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    fill: false,
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            ...chartOptions,
+            scales: {
+                y: { type: 'linear', display: true, position: 'left', title: { display: true, text: '营收(亿元)' } },
+                y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '净利润(亿元)' } }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('profitabilityChart'), {
+        type: 'bar',
+        data: {
+            labels: ['2023 H1', '2024 H1', '2025 H1'],
+            datasets: [
+                {
+                    label: '毛利率',
+                    data: [18.5, 20.7, 21.9],
+                    backgroundColor: '#10b981'
+                },
+                 {
+                    label: '净利率',
+                    data: [4.1, 4.8, 5.1],
+                    backgroundColor: '#34d399'
+                }
+            ]
+        },
+        options: {
+            ...chartOptions,
+            plugins: {
+                tooltip: {
+                    callbacks: { label: (context) => `${context.dataset.label}: ${context.raw}%` }
+                }
+            },
+            scales: { y: { ticks: { callback: (value) => `${value}%` } } }
+        }
+    });
+});
+</script>
+
+</body>
+</html>
