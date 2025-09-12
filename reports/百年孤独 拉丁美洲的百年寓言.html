@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>《百年孤独》深度研究报告</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Noto Serif SC', serif;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .family-tree ul {
+            padding-left: 20px;
+            border-left: 2px solid #a16207;
+        }
+        .family-tree li {
+            position: relative;
+            list-style: none;
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+        .family-tree li::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -20px;
+            width: 20px;
+            height: 2px;
+            background: #a16207;
+            transform: translateY(-50%);
+        }
+        .family-tree .character-name {
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .family-tree .character-name:hover {
+            color: #ca8a04;
+        }
+        .character-bio {
+            display: none;
+            border-left: 2px solid #ca8a04;
+        }
+        .nav-item.active {
+            background-color: #fefce8;
+            color: #a16207;
+            border-right: 4px solid #ca8a04;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+    </style>
+    <!-- Chosen Palette: Macondo Parchment (Warm neutrals like beige/brown with muted gold/red accents) -->
+    <!-- Application Structure Plan: A single-page dashboard with a fixed sidebar for thematic navigation. This non-linear structure allows users to explore the complex literary analysis by topic (e.g., Themes, Characters) rather than a rigid, linear read-through. Key interactions include a clickable family tree, interactive cards for magical realism events, and a toggle to contrast memory vs. official history. This design prioritizes user-driven exploration and makes abstract concepts more tangible. -->
+    <!-- Visualization & Content Choices: Family Tree: Goal=Organize, Method=Interactive HTML/CSS diagram, Interaction=Click to reveal bio, Justification=Clarifies complex relationships central to the novel. Solitude Theme: Goal=Compare, Method=Chart.js Radar Chart, Interaction=Hover for details, Justification=Visually represents abstract emotional states of characters. Memory Theme: Goal=Compare, Method=JS Text Toggle, Interaction=Click button to switch views, Justification=Dramatizes the conflict between memory and erasure. Magical Realism: Goal=Inform/Organize, Method=HTML/CSS interactive cards, Interaction=Click to expand, Justification=Breaks down a complex literary device into digestible examples. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-yellow-50 text-stone-800">
+    <div class="flex min-h-screen">
+        <aside class="w-1/5 bg-yellow-100 p-6 sticky top-0 h-screen shadow-lg">
+            <h1 class="text-2xl font-bold text-yellow-900 mb-8">《百年孤独》研究</h1>
+            <nav id="main-nav" class="space-y-4">
+                <a href="#introduction" class="nav-item flex items-center p-3 rounded-l-lg text-yellow-800 hover:bg-yellow-200 transition-colors duration-300 active" data-target="introduction">
+                    <i data-lucide="book-open" class="mr-3"></i> 导论
+                </a>
+                <a href="#macondo" class="nav-item flex items-center p-3 rounded-l-lg text-yellow-800 hover:bg-yellow-200 transition-colors duration-300" data-target="macondo">
+                    <i data-lucide="map" class="mr-3"></i> 马孔多与家族
+                </a>
+                <a href="#magic-realism" class="nav-item flex items-center p-3 rounded-l-lg text-yellow-800 hover:bg-yellow-200 transition-colors duration-300" data-target="magic-realism">
+                    <i data-lucide="wand-2" class="mr-3"></i> 魔幻现实主义
+                </a>
+                <a href="#fate" class="nav-item flex items-center p-3 rounded-l-lg text-yellow-800 hover:bg-yellow-200 transition-colors duration-300" data-target="fate">
+                    <i data-lucide="link-2" class="mr-3"></i> 宿命的迷宫
+                </a>
+                <a href="#themes" class="nav-item flex items-center p-3 rounded-l-lg text-yellow-800 hover:bg-yellow-200 transition-colors duration-300" data-target="themes">
+                    <i data-lucide="milestone" class="mr-3"></i> 核心主题
+                </a>
+                <a href="#comparison" class="nav-item flex items-center p-3 rounded-l-lg text-yellow-800 hover:bg-yellow-200 transition-colors duration-300" data-target="comparison">
+                    <i data-lucide="library" class="mr-3"></i> 比较研究
+                </a>
+                <a href="#conclusion" class="nav-item flex items-center p-3 rounded-l-lg text-yellow-800 hover:bg-yellow-200 transition-colors duration-300" data-target="conclusion">
+                    <i data-lucide="pen-square" class="mr-3"></i> 结论
+                </a>
+            </nav>
+        </aside>
+
+        <main id="main-content" class="w-4/5 p-10 overflow-y-auto">
+            <section id="introduction" class="content-section active">
+                <h2 class="text-4xl font-bold text-yellow-900 mb-4">导论: 拉丁美洲的百年寓言</h2>
+                <p class="text-lg leading-relaxed text-stone-700 mb-6">本研究报告深入剖析加夫列尔·加西亚·马尔克斯的巨著《百年孤独》，系统阐述其如何通过魔幻现实主义的独特笔法，将布恩迪亚家族七代人的传奇与哥伦比亚乃至拉丁美洲的历史现实相融合。我们认为，《百年孤独》不仅是布恩迪亚家族的编年史，更是一部关于拉丁美洲历史、文化与民族心灵的宏大寓言。报告将通过解构小说的叙事结构、艺术手法、核心主题与历史背景，并在比较文学的视域中，揭示其在世界文学坐标系中的独特地位与跨文化影响。</p>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-semibold text-yellow-800 mb-3">研究路径</h3>
+                    <ul class="list-disc list-inside space-y-2 text-stone-600">
+                        <li>梳理马孔多的叙事循环与布恩迪亚家族谱系。</li>
+                        <li>解构魔幻现实主义的美学实践及其功能。</li>
+                        <li>分析宿命论的象征体系与预言的自我实现机制。</li>
+                        <li>阐释孤独、记忆与现代化三大主题的历史内涵。</li>
+                        <li>通过与福克纳、鲁迅及《红楼梦》的比较，定位其世界文学价值。</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="macondo" class="content-section">
+                <h2 class="text-4xl font-bold text-yellow-900 mb-4">马孔多的建构：叙事循环与家族谱系</h2>
+                 <p class="text-lg leading-relaxed text-stone-700 mb-6">马孔多的历史就是布恩迪亚家族的历史，一个从建立到毁灭的完整闭环。小说通过不断重复的名字与性格，构建了一种非线性的循环时间观，暗示着家族成员在重复祖辈的命运，无法挣脱宿命的枷锁。下方的家族图谱展示了这七代人错综复杂的关系。您可以点击人物姓名，查看其简介和在家族命运中的角色。</p>
+                <div class="bg-white p-6 rounded-lg shadow-md family-tree">
+                     <h3 class="text-2xl font-semibold text-yellow-800 mb-4">布恩迪亚家族图谱 (点击姓名查看详情)</h3>
+                    <ul>
+                        <li>
+                            <strong class="character-name text-xl" data-bio="bio-jose-arcadio-buendia">何塞·阿尔卡蒂奥·布恩迪亚</strong> & <strong>乌尔苏拉·伊瓜兰</strong>
+                             <div id="bio-jose-arcadio-buendia" class="character-bio mt-2 p-3 text-sm text-stone-600">马孔多的建立者，一个充满想象力和求知欲的族长，最终在疯狂中被绑在栗树下。他代表了人类对未知的原始探索精神与乌托邦式的开端。</div>
+                            <ul>
+                                <li>
+                                    <strong class="character-name" data-bio="bio-jose-arcadio">何塞·阿尔卡蒂奥</strong>
+                                    <div id="bio-jose-arcadio" class="character-bio mt-2 p-3 text-sm text-stone-600">长子，体格强壮，性格冲动。他代表了原始的、野性的生命力，最终离奇死亡。</div>
+                                </li>
+                                <li>
+                                    <strong class="character-name" data-bio="bio-aureliano">奥雷里亚诺·布恩迪亚上校</strong>
+                                     <div id="bio-aureliano" class="character-bio mt-2 p-3 text-sm text-stone-600">次子，发动了32场内战的传奇英雄，也是一个绝对孤独者。他代表了权力与战争带来的荣耀和虚无，晚年在炼金实验室里消磨时光，体现了英雄主义的最终幻灭。</div>
+                                </li>
+                                <li>
+                                    <strong class="character-name" data-bio="bio-amaranta">阿玛兰妲</strong>
+                                    <div id="bio-amaranta" class="character-bio mt-2 p-3 text-sm text-stone-600">女儿，因情感纠葛而终身未嫁，一生都在织造和拆解自己的寿衣。她代表了因爱与嫉妒而产生的扭曲和孤独。</div>
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                             <strong class="text-xl">第二代及后续...</strong>
+                             <ul>
+                                <li>
+                                    <strong class="character-name" data-bio="bio-arcadio">阿尔卡蒂奥</strong> (何塞·阿尔卡蒂奥之子)
+                                    <div id="bio-arcadio" class="character-bio mt-2 p-3 text-sm text-stone-600">短暂成为马孔多的独裁者，性格残暴，最终被枪决。他象征着权力的滥用与迅速败亡。</div>
+                                </li>
+                                 <li>
+                                     <strong class="character-name" data-bio="bio-aureliano-jose">奥雷里亚诺·何塞</strong> (奥雷里亚诺上校之子)
+                                     <div id="bio-aureliano-jose" class="character-bio mt-2 p-3 text-sm text-stone-600">爱上了姑妈阿玛兰妲，在战争中丧生。他的命运是家族乱伦禁忌与宿命悲剧的又一重演。</div>
+                                 </li>
+                                 <li>
+                                     <strong class="character-name" data-bio="bio-remedios">俏姑娘雷梅黛丝</strong> (阿尔卡蒂奥之女)
+                                     <div id="bio-remedios" class="character-bio mt-2 p-3 text-sm text-stone-600">拥有超凡脱俗的美貌，却对世俗一无所知，最终裹着床单升天。她象征着不属于这个世界的纯粹之美，也暗示了马孔多与现实的脱节。</div>
+                                 </li>
+                                 <li>
+                                     <strong class="character-name" data-bio="bio-aureliano-segundo">奥雷里亚诺第二</strong> & <strong>费尔南达·德尔·卡皮奥</strong>
+                                      <div id="bio-aureliano-segundo" class="character-bio mt-2 p-3 text-sm text-stone-600">性格开朗，沉溺于狂欢和宴饮。他代表了家族在物质财富冲击下的享乐主义与衰败。</div>
+                                 </li>
+                                 <li>
+                                      <strong class="character-name" data-bio="bio-jose-arcadio-segundo">何塞·阿尔卡蒂奥第二</strong>
+                                      <div id="bio-jose-arcadio-segundo" class="character-bio mt-2 p-3 text-sm text-stone-600">香蕉公司大屠杀的唯一幸存者和见证者，毕生致力于保存这段被抹去的历史。他代表了与遗忘抗争的记忆。</div>
+                                 </li>
+                                  <li>
+                                     <strong class="character-name" data-bio="bio-meme">梅梅</strong> (奥雷里亚诺第二之女)
+                                      <div id="bio-meme" class="character-bio mt-2 p-3 text-sm text-stone-600">与汽车修理工相爱，被费尔南达囚禁在修道院，她的爱情悲剧象征着传统与现代、阶级与自由意志的冲突。</div>
+                                 </li>
+                                 <li>
+                                     <strong class="character-name" data-bio="bio-aureliano-babilonia">奥雷里亚诺·巴比伦</strong> (梅梅的私生子)
+                                      <div id="bio-aureliano-babilonia" class="character-bio mt-2 p-3 text-sm text-stone-600">家族的最后一代，他破译了羊皮卷的预言，并与姑妈阿玛兰妲·乌尔苏拉相爱，生下了长猪尾巴的孩子。在他破译预言的同时，马孔多被飓风摧毁。他象征着知识的终极孤独和家族命运的完成者。</div>
+                                 </li>
+                             </ul>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="magic-realism" class="content-section">
+                <h2 class="text-4xl font-bold text-yellow-900 mb-4">魔幻现实主义的美学实践</h2>
+                 <p class="text-lg leading-relaxed text-stone-700 mb-6">魔幻现实主义并非凭空想象，而是马尔克斯用以反映拉丁美洲独特社会现实的艺术手段。他将神话、传说与残酷的现实（如内战、屠杀）无缝衔接，创造出一个荒诞与真实并存的世界。这种笔法旨在说明，在拉美的语境下，“魔幻”本身就是现实的一部分。以下是小说中几个典型的魔幻现实主义事件及其功能分析。</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md transition-transform hover:scale-105">
+                        <h3 class="text-xl font-semibold text-yellow-800 mb-2">吉卜赛人的飞毯</h3>
+                        <p class="text-stone-600">功能：象征着外部世界的神奇与诱惑，激发了马孔多居民，尤其是何塞·阿尔卡蒂奥·布恩迪亚的想象力，是马孔多与外部文明初次接触的隐喻。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md transition-transform hover:scale-105">
+                        <h3 class="text-xl font-semibold text-yellow-800 mb-2">失眠症与遗忘症</h3>
+                        <p class="text-stone-600">功能：一场会传染的遗忘瘟疫，象征着历史记忆的脆弱性。居民们开始忘记事物的名称，这不仅是魔幻情节，更是对集体失忆的政治寓言，暗示了历史是如何被轻易抹去的。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md transition-transform hover:scale-105">
+                        <h3 class="text-xl font-semibold text-yellow-800 mb-2">俏姑娘雷梅黛丝升天</h3>
+                        <p class="text-stone-600">功能：以一种诗意、奇幻的方式处理死亡与消失，反映了马孔多居民对于无法理解事物的超自然解释。它既是美的极致体现，也象征着一种不容于世俗的纯粹性的离去。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md transition-transform hover:scale-105">
+                        <h3 class="text-xl font-semibold text-yellow-800 mb-2">黄蝴蝶的追随</h3>
+                        <p class="text-stone-600">功能：黄蝴蝶总是伴随梅梅的情人毛里西奥·巴比伦出现，是爱情与不祥预兆的象征。这为他们的禁忌之恋增添了神秘色彩，也预示了其悲剧结局。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md transition-transform hover:scale-105">
+                        <h3 class="text-xl font-semibold text-yellow-800 mb-2">持续近五年的雨</h3>
+                        <p class="text-stone-600">功能：发生在香蕉公司大屠杀之后，这场毁灭性的长雨既是对屠杀的洗刷，也是对马孔多繁荣时代的彻底终结。它是一场天灾，更是对历史创伤的超现实主义表现，使马孔多陷入停滞与腐朽。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md transition-transform hover:scale-105">
+                        <h3 class="text-xl font-semibold text-yellow-800 mb-2">香蕉公司大屠杀</h3>
+                        <p class="text-stone-600">功能：这是小说中最直接与现实历史（1928年哥伦比亚真实事件）相连的情节。马尔克斯通过魔幻手法处理——三千多具尸体被装上火车运走，并从官方历史中被彻底抹除——深刻揭示了权力如何通过制造“集体遗忘”来掩盖罪行。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="fate" class="content-section">
+                <h2 class="text-4xl font-bold text-yellow-900 mb-4">宿命的迷宫：象征与预言</h2>
+                <p class="text-lg leading-relaxed text-stone-700 mb-6">《百年孤独》的核心是一个巨大的宿命迷宫，由梅尔基亚德斯的羊皮卷预言和一系列关键象征共同构建。家族成员的每一次反抗，都恰恰是完成预言的一步。他们以为自己在选择，实则在劫难逃。这个无法逃脱的命运闭环，是小说最深刻的悲剧内核。</p>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-semibold text-yellow-800 mb-4">预言的自我实现路径</h3>
+                     <div class="relative border-l-4 border-yellow-600 pl-8 space-y-12 py-4">
+                        <div class="absolute w-4 h-4 bg-yellow-700 rounded-full -left-2.5 top-4"></div>
+                        <div>
+                            <h4 class="text-lg font-bold text-yellow-900">开端：羊皮卷的出现</h4>
+                            <p class="text-stone-600">吉卜赛人梅尔基亚德斯留下用梵文写成的羊皮卷，记录了布恩迪亚家族百年内的所有命运，但设置了时间密码，只有在家族的最后一人诞生时才能破译。</p>
+                        </div>
+                        <div class="absolute w-4 h-4 bg-yellow-700 rounded-full -left-2.5 top-1/3"></div>
+                        <div>
+                            <h4 class="text-lg font-bold text-yellow-900">过程：无意识地执行</h4>
+                            <p class="text-stone-600">家族成员们（如奥雷里亚诺上校发动战争，阿玛兰妲拒绝爱情，奥雷里亚诺第二沉溺享乐）在各自的孤独中生活，他们的行为、性格甚至死亡方式，都与羊皮卷的记载一一对应，尽管他们对此一无所知。</p>
+                        </div>
+                        <div class="absolute w-4 h-4 bg-yellow-700 rounded-full -left-2.5 top-2/3"></div>
+                        <div>
+                            <h4 class="text-lg font-bold text-yellow-900">关键象征：猪尾巴的恐惧</h4>
+                            <p class="text-stone-600">家族始于对近亲乱伦会生下猪尾巴孩子的恐惧，这个恐惧贯穿始终，成为一种诅咒。它象征着家族无法摆脱的原罪和孤立的恶果。</p>
+                        </div>
+                        <div class="absolute w-4 h-4 bg-yellow-700 rounded-full -left-2.5 bottom-4"></div>
+                        <div>
+                            <h4 class="text-lg font-bold text-yellow-900">终结：破译与毁灭</h4>
+                            <p class="text-stone-600">最后一代奥雷里亚诺·巴比伦与姑妈相爱，生下了长有猪尾巴的婴儿，应验了最初的恐惧。在他破译羊皮卷，理解家族全部命运的瞬间，飓风将马孔多从地面上抹去，预言彻底完成。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="themes" class="content-section">
+                 <h2 class="text-4xl font-bold text-yellow-900 mb-4">核心主题的深度阐释</h2>
+                 <p class="text-lg leading-relaxed text-stone-700 mb-6">小说三大核心主题——孤独、记忆与现代化，并非孤立存在，而是深深植根于拉丁美洲动荡的历史土壤中。马尔克斯通过布恩迪亚家族的微观史，折射出整个大陆在殖民、内战、独裁和全球化冲击下的宏观困境。本章将通过互动图表和案例，深入剖析这些主题的历史语境。</p>
+                
+                <div id="theme-tabs" class="mb-4 border-b border-gray-200">
+                    <nav class="flex space-x-4" aria-label="Tabs">
+                        <button class="theme-tab-button active text-yellow-700 border-b-2 border-yellow-700 py-4 px-1 text-lg font-medium" data-target="theme-solitude">孤独的变奏</button>
+                        <button class="theme-tab-button text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-lg font-medium" data-target="theme-memory">记忆与遗忘</button>
+                        <button class="theme-tab-button text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 text-lg font-medium" data-target="theme-modernization">现代化的冲击</button>
+                    </nav>
+                </div>
+
+                <div id="theme-solitude" class="theme-content">
+                    <h3 class="text-2xl font-semibold text-yellow-800 mb-3">孤独的变奏与根源</h3>
+                    <p class="text-stone-600 mb-6">布恩迪亚家族的成员，无论性格如何，最终都陷入了各自的孤独。这种孤独源于他们无法沟通的情感、自负的性格以及对家族宿命的无力感。这不仅仅是个人悲剧，更是拉丁美洲在世界舞台上长期被孤立、被误解状态的文学投射。下面的雷达图展示了几个关键角色的“孤独指数”。</p>
+                     <div class="bg-white p-4 rounded-lg shadow-md">
+                        <div class="chart-container">
+                            <canvas id="solitudeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="theme-memory" class="theme-content hidden">
+                    <h3 class="text-2xl font-semibold text-yellow-800 mb-3">记忆与遗忘的政治</h3>
+                    <p class="text-stone-600 mb-6">在马孔多，历史是可以被篡改和抹除的。香蕉公司大屠杀后，政府和军方成功地让所有人相信“什么都没有发生”。这段情节深刻地揭示了“遗忘”作为一种政治统治工具的力量。只有何塞·阿尔卡蒂奥第二的个人记忆，成为对抗官方谎言的最后武器。请点击下方按钮，切换“官方历史”与“真实记忆”的叙述。</p>
+                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="flex justify-center mb-4">
+                            <button id="toggle-history-btn" class="bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition-colors">切换至 真实记忆</button>
+                        </div>
+                        <div id="history-display">
+                            <h4 class="text-xl font-bold text-center text-yellow-900 mb-2">官方历史版本</h4>
+                            <p class="text-center text-stone-700 italic">“马孔多没有发生过任何事，现在没有，将来也不会有。这是一个幸福的小镇。”</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="theme-modernization" class="theme-content hidden">
+                     <h3 class="text-2xl font-semibold text-yellow-800 mb-3">现代化的冲击与幻灭</h3>
+                    <p class="text-stone-600 mb-6">铁路、电影、电话等现代文明的到来，最初给马孔多带来了新奇与希望，但随之而来的香蕉公司则代表了外国资本的无情剥削。现代化并未带来真正的进步，反而摧毁了马孔多的田园牧歌，加剧了社会矛盾，并以一场大屠杀和随之而来的衰败告终。这批判了拉丁美洲在被迫卷入全球资本主义体系时所经历的痛苦与幻灭。</p>
+                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <ul class="space-y-4">
+                            <li class="flex items-center">
+                                <span class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-700 mr-4 text-xl font-bold">1</span>
+                                <div>
+                                    <h4 class="font-semibold">初入：铁路与新奇事物</h4>
+                                    <p class="text-sm text-stone-600">打破马孔多的与世隔绝，带来外部世界的诱惑与机遇。</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center">
+                                <span class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 text-blue-700 mr-4 text-xl font-bold">2</span>
+                                <div>
+                                    <h4 class="font-semibold">繁荣：香蕉公司的黄金时代</h4>
+                                    <p class="text-sm text-stone-600">带来短暂的经济繁荣，但也引入了剥削性的劳工关系和外国势力的控制。</p>
+                                </div>
+                            </li>
+                            <li class="flex items-center">
+                                <span class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 text-red-700 mr-4 text-xl font-bold">3</span>
+                                <div>
+                                    <h4 class="font-semibold">冲突：罢工与大屠杀</h4>
+                                    <p class="text-sm text-stone-600">工人的反抗遭到血腥镇压，现代化的虚假承诺彻底破产。</p>
+                                </div>
+                            </li>
+                             <li class="flex items-center">
+                                <span class="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-700 mr-4 text-xl font-bold">4</span>
+                                <div>
+                                    <h4 class="font-semibold">衰败：长雨与遗忘</h4>
+                                    <p class="text-sm text-stone-600">繁荣的假象被自然与人为的力量洗刷殆尽，马孔多重回甚至不如往昔的孤寂。</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="comparison" class="content-section">
+                <h2 class="text-4xl font-bold text-yellow-900 mb-4">跨文化对话：与世界文学的比较</h2>
+                 <p class="text-lg leading-relaxed text-stone-700 mb-6">《百年孤独》并非孤立的文学现象，它与世界文学中的许多经典作品形成了深刻的对话。通过比较，我们能更清晰地看到马尔克斯的独创性及其思想的普遍性。本章将小说置于世界文学的宏大版图中，从三个维度展开比较研究。</p>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold text-yellow-800 mb-3 border-b-2 border-yellow-200 pb-2">马孔多 vs 约克纳帕塔法</h3>
+                        <p class="text-sm text-stone-600 mb-3"><strong>比较对象：威廉·福克纳</strong></p>
+                        <ul class="list-disc list-inside space-y-2 text-stone-600">
+                           <li><strong>共同点：</strong>都构建了封闭的文学地理空间；都采用非线性叙事，探索家族历史与罪孽传承。</li>
+                           <li><strong>不同点：</strong>马尔克斯的叙事更为奔放和魔幻，语言充满巴洛克式的华丽；福克纳则更侧重人物内心世界的意识流独白，风格更为凝重、晦涩。</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold text-yellow-800 mb-3 border-b-2 border-yellow-200 pb-2">国民性批判</h3>
+                         <p class="text-sm text-stone-600 mb-3"><strong>比较对象：鲁迅</strong></p>
+                        <ul class="list-disc list-inside space-y-2 text-stone-600">
+                           <li><strong>共同点：</strong>都对本民族性格中的保守、愚昧、麻木进行了深刻的反思与批判，都希望通过文学唤醒民众。</li>
+                           <li><strong>不同点：</strong>鲁迅的批判更为直接、冷峻，是“哀其不幸，怒其不争”；马尔克斯则将批判融入到一种狂欢化、寓言式的叙事中，带有更多的同情与无奈。</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold text-yellow-800 mb-3 border-b-2 border-yellow-200 pb-2">家族兴衰史诗</h3>
+                         <p class="text-sm text-stone-600 mb-3"><strong>比较对象：《红楼梦》</strong></p>
+                        <ul class="list-disc list-inside space-y-2 text-stone-600">
+                           <li><strong>共同点：</strong>都是通过一个大家族的兴衰来折射一个时代的变迁；都充满了宿命论的哲学思考；都将现实主义与神话/奇幻元素结合。</li>
+                           <li><strong>不同点：</strong>《红楼梦》的结构更为精致、内敛，情感表达细腻入微；《百年孤独》的结构是循环式的，情感表达则更为热烈、夸张，充满拉美式的激情。</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="conclusion" class="content-section">
+                <h2 class="text-4xl font-bold text-yellow-900 mb-4">结论：无法复制的孤独</h2>
+                <p class="text-lg leading-relaxed text-stone-700 mb-6">《百年孤独》以其开创性的艺术形式和深刻的历史洞察力，为拉丁美洲乃至整个世界文学贡献了一部不朽的史诗。它证明了，讲述民族故事的最好方式，就是以最富原创性的艺术手法，去拥抱那些看似荒诞不经的现实。布恩迪亚家族的百年，是一个关于创造、战争、爱情、权力和遗忘的循环，最终归于虚无。然而，正是这注定的孤独，成就了这部作品普世的、永恒的魅力。</p>
+                <div class="bg-white mt-8 p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-semibold text-yellow-800 mb-3">研究总结与未来方向</h3>
+                    <ul class="list-disc list-inside space-y-2 text-stone-600">
+                        <li><strong>核心发现：</strong>小说通过魔幻现实主义，将家族宿命与拉美历史寓言化，其循环叙事结构本身就是对宿命论的最好诠释。</li>
+                        <li><strong>文学影响：</strong>深刻启发了中国的“寻根文学”和世界范围内的“新历史主义”小说创作。</li>
+                        <li><strong>未来展望：</strong>可以从后殖民理论视角，进一步分析香蕉公司所代表的经济与文化侵略；或从生态批评角度，解读马孔多从田园到毁灭的环境变迁。</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            lucide.createIcons();
+
+            const navLinks = document.querySelectorAll('.nav-item');
+            const sections = document.querySelectorAll('.content-section');
+
+            function showSection(targetId) {
+                sections.forEach(section => {
+                    if (section.id === targetId) {
+                        section.classList.add('active');
+                    } else {
+                        section.classList.remove('active');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    if (link.dataset.target === targetId) {
+                        link.classList.add('active');
+                    } else {
+                        link.classList.remove('active');
+                    }
+                });
+            }
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.dataset.target;
+                    showSection(targetId);
+                    window.scrollTo(0, 0);
+                });
+            });
+
+            const characterNames = document.querySelectorAll('.character-name');
+            characterNames.forEach(name => {
+                name.addEventListener('click', function() {
+                    const bioId = this.dataset.bio;
+                    const bioElement = document.getElementById(bioId);
+                    if (bioElement) {
+                        const isVisible = bioElement.style.display === 'block';
+                        document.querySelectorAll('.character-bio').forEach(b => b.style.display = 'none');
+                        bioElement.style.display = isVisible ? 'none' : 'block';
+                    }
+                });
+            });
+            
+            const themeTabs = document.querySelectorAll('.theme-tab-button');
+            const themeContents = document.querySelectorAll('.theme-content');
+
+            themeTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    themeTabs.forEach(t => t.classList.remove('active', 'text-yellow-700', 'border-yellow-700'));
+                    tab.classList.add('active', 'text-yellow-700', 'border-yellow-700');
+                    
+                    const targetId = tab.dataset.target;
+                    themeContents.forEach(content => {
+                        if(content.id === targetId) {
+                            content.classList.remove('hidden');
+                        } else {
+                            content.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            const historyBtn = document.getElementById('toggle-history-btn');
+            const historyDisplay = document.getElementById('history-display');
+            let isOfficialHistory = true;
+
+            historyBtn.addEventListener('click', () => {
+                isOfficialHistory = !isOfficialHistory;
+                if(isOfficialHistory) {
+                    historyBtn.textContent = '切换至 真实记忆';
+                    historyDisplay.innerHTML = `
+                        <h4 class="text-xl font-bold text-center text-yellow-900 mb-2">官方历史版本</h4>
+                        <p class="text-center text-stone-700 italic">“马孔多没有发生过任何事，现在没有，将来也不会有。这是一个幸福的小镇。”</p>
+                    `;
+                } else {
+                     historyBtn.textContent = '切换至 官方历史';
+                    historyDisplay.innerHTML = `
+                        <h4 class="text-xl font-bold text-center text-red-800 mb-2">真实记忆版本</h4>
+                        <p class="text-center text-stone-700">“当时在场的有三千多人...他们都被机枪扫射，然后尸体像香蕉一样被装上火车，扔进了海里。” —— 何塞·阿尔卡蒂奥第二</p>
+                    `;
+                }
+            });
+
+            const ctx = document.getElementById('solitudeChart');
+            if(ctx) {
+                new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['权力欲', '情爱纠葛', '知识的诅咒', '自尊与骄傲', '家族隔阂'],
+                        datasets: [{
+                            label: '奥雷里亚诺上校',
+                            data: [9, 3, 7, 10, 8],
+                            fill: true,
+                            backgroundColor: 'rgba(202, 138, 4, 0.2)',
+                            borderColor: 'rgb(202, 138, 4)',
+                            pointBackgroundColor: 'rgb(202, 138, 4)',
+                        }, {
+                            label: '阿玛兰妲',
+                            data: [4, 10, 2, 8, 9],
+                            fill: true,
+                            backgroundColor: 'rgba(120, 113, 108, 0.2)',
+                            borderColor: 'rgb(120, 113, 108)',
+                            pointBackgroundColor: 'rgb(120, 113, 108)',
+                        },{
+                            label: '奥雷里亚诺·巴比伦',
+                            data: [2, 7, 10, 5, 9],
+                            fill: true,
+                            backgroundColor: 'rgba(161, 98, 7, 0.2)',
+                            borderColor: 'rgb(161, 98, 7)',
+                            pointBackgroundColor: 'rgb(161, 98, 7)',
+                        }]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        elements: {
+                            line: {
+                                borderWidth: 3
+                            }
+                        },
+                        scales: {
+                            r: {
+                                angleLines: {
+                                    display: false
+                                },
+                                suggestedMin: 0,
+                                suggestedMax: 10,
+                                pointLabels: {
+                                    font: {
+                                        size: 14
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
