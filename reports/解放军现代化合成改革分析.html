@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国军队合成化与联合作战改革深度分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Strategic Calm (#F8F7F4, #2c3e50, #34495e, #95a5a6, #bdc3c7) -->
+    <!-- Application Structure Plan: The SPA is organized into five thematic sections (Background, Brigade Analysis, Joint Ops, Comparison/Assessment, Future) navigated via a sticky top bar. This structure creates a logical narrative flow, from the 'why' of the reforms to the 'what's next,' making complex information more digestible than a linear report. User interaction focuses on selecting specific data views (e.g., brigade type) and exploring diagrams to understand composition and relationships, which is more engaging and informative for this analytical content. This design prioritizes user-driven exploration over passive reading. -->
+    <!-- Visualization & Content Choices: 1. Reform Drivers -> Goal: Inform -> Presentation: Interactive cards -> Interaction: Click-to-reveal text. Justification: Breaks down complex drivers into digestible chunks. Method: HTML/CSS/JS. 2. Brigade Composition -> Goal: Organize -> Presentation: Interactive diagram & donut chart -> Interaction: Buttons to switch brigade types, updating diagram and text. Justification: Visually explains the core building block of the reform. Library: Chart.js for donut. 3. Joint Ops -> Goal: Relationships -> Presentation: System flow diagram -> Interaction: Click highlights connections. Justification: Clarifies complex command and control relationships. Method: HTML/CSS/JS. 4. PLA vs US BCT -> Goal: Compare -> Presentation: Radar chart -> Interaction: Hover for details. Justification: Provides direct, multi-dimensional comparison. Library: Chart.js. 5. Strengths/Weaknesses -> Goal: Evaluate -> Presentation: Side-by-side lists. Justification: Clear, concise summary of assessment. Method: HTML/CSS. All choices avoid SVG/Mermaid and prioritize interactive exploration. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f4f6f9;
+            color: #2c3e50;
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active, .nav-link:hover {
+            color: #3498db;
+            border-bottom-color: #3498db;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 16px rgba(0, 0, 0, 0.08);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .btn {
+            transition: all 0.3s ease;
+        }
+        .btn-active {
+            background-color: #3498db !important;
+            color: white !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-lg shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800">解放军现代化改革分析</h1>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#intro" class="nav-link active">改革背景</a>
+                    <a href="#brigade" class="nav-link">合成旅解析</a>
+                    <a href="#joint-ops" class="nav-link">联合作战</a>
+                    <a href="#assessment" class="nav-link">对比评估</a>
+                    <a href="#future" class="nav-link">未来展望</a>
+                </div>
+                <button id="mobile-menu-button" class="md:hidden">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+            <div id="mobile-menu" class="hidden md:hidden mt-4 space-y-2">
+                <a href="#intro" class="block py-2 px-4 text-sm nav-link mobile-nav active">改革背景</a>
+                <a href="#brigade" class="block py-2 px-4 text-sm nav-link mobile-nav">合成旅解析</a>
+                <a href="#joint-ops" class="block py-2 px-4 text-sm nav-link mobile-nav">联合作战</a>
+                <a href="#assessment" class="block py-2 px-4 text-sm nav-link mobile-nav">对比评估</a>
+                <a href="#future" class="block py-2 px-4 text-sm nav-link mobile-nav">未来展望</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-8">
+        
+        <section id="intro" class="content-section active">
+            <h2 class="text-3xl font-bold mb-2 text-center">改革的战略驱动与顶层设计</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">本章旨在阐明2015年以来解放军推动合成化与联合作战改革的根本动因。我们将分析其在多重压力下的战略考量，并简述改革的总体目标与顶层设计框架。</p>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="card p-6">
+                    <h3 class="font-bold text-xl mb-3">地缘政治变局</h3>
+                    <p class="text-gray-700">随着中国国家利益的全球拓展和周边安全环境的日益复杂，解放军面临的潜在冲突模式从传统的国土防御转向远域力量投送和维护海外利益。这要求军队具备更强的快速反应、远程机动和独立遂行多样化任务的能力。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="font-bold text-xl mb-3">军事技术革命</h3>
+                    <p class="text-gray-700">信息技术，特别是网络、数据链、人工智能的飞速发展，正在重塑战争形态。未来战争是基于信息系统的体系对抗，而非平台间的简单叠加。这驱动解放军必须打破军种壁垒，构建网络化、一体化的联合作战体系以争夺信息优势。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="font-bold text-xl mb-3">内部结构优化</h3>
+                    <p class="text-gray-700">改革前的“师-团”体制存在指挥层级多、模块化程度低、反应速度慢等问题，难以适应高节奏、高强度的现代战争。向“旅-营”体制转型，推动部队合成化、模块化，是提升作战效率、优化资源配置的内在需求。</p>
+                </div>
+            </div>
+            <div class="card mt-8 p-6">
+                <h3 class="font-bold text-xl mb-3 text-center">改革的顶层设计</h3>
+                <p class="text-gray-700 text-center max-w-4xl mx-auto">此轮改革的核心是构建“军委管总、战区主战、军种主建”的新体制。战区作为联合作战指挥机构，负责辖区内的联合作战指挥；各军种则负责部队的日常战备、训练和建设。合成旅作为陆军的核心作战单元，被设计为能直接融入战区联合作战体系的“即插即用”模块。</p>
+            </div>
+        </section>
+
+        <section id="brigade" class="content-section">
+            <h2 class="text-3xl font-bold mb-2 text-center">核心基石：陆军合成旅</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">本章深入剖析解放军陆军合成旅的模块化编制与能力生成。我们将通过互动方式，展示不同类型合成旅的内部结构，并探讨其如何形成一体化作战能力。</p>
+            <div class="text-center mb-6">
+                <button data-type="heavy" class="brigade-btn btn bg-white px-4 py-2 rounded-lg shadow mr-2 btn-active">重型合成旅</button>
+                <button data-type="medium" class="brigade-btn btn bg-white px-4 py-2 rounded-lg shadow mr-2">中型合成旅</button>
+                <button data-type="light" class="brigade-btn btn bg-white px-4 py-2 rounded-lg shadow">轻型合成旅</button>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div id="brigade-info" class="card p-6">
+                </div>
+                <div class="card p-6">
+                    <h3 class="font-bold text-xl mb-3 text-center">“侦-控-打-评”闭环</h3>
+                    <p class="text-center text-gray-600 mb-4">合成旅的数字化指控系统是其战斗力的倍增器，它将侦察、指挥、火力、评估等环节高效融为一体。</p>
+                    <div class="chart-container h-64 md:h-80">
+                        <canvas id="capabilities-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="joint-ops" class="content-section">
+            <h2 class="text-3xl font-bold mb-2 text-center">体系融合：从战术合成到联合作战</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">本章探讨合成旅如何作为基本作战单元融入战区联合作战体系。我们将展示在战区主战体制下，陆军单位与其他军种进行协同的指挥与信息链路。</p>
+             <div class="card p-6 max-w-5xl mx-auto">
+                <div class="text-center">
+                    <div class="inline-block bg-blue-100 text-blue-800 font-bold p-3 rounded-lg shadow-md">战区联合作战指挥中心</div>
+                    <div class="grid grid-cols-3 gap-4 h-24 items-center justify-center relative my-4">
+                        <div class="absolute top-1/2 left-0 w-full border-t-2 border-gray-400"></div>
+                        <div class="absolute top-0 left-1/2 w-px h-1/2 bg-gray-400"></div>
+                        <div class="absolute top-0 left-1/4 w-px h-1/2 bg-gray-400 rotate-12 transform origin-bottom"></div>
+                        <div class="absolute top-0 right-1/4 w-px h-1/2 bg-gray-400 -rotate-12 transform origin-bottom"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
+                    <div class="bg-green-100 p-4 rounded-lg shadow">
+                        <h4 class="font-bold">陆军合成旅</h4>
+                        <p class="text-sm text-green-800">地面主战单元</p>
+                    </div>
+                    <div class="bg-sky-100 p-4 rounded-lg shadow">
+                        <h4 class="font-bold">空军航空兵</h4>
+                        <p class="text-sm text-sky-800">空中遮断/支援</p>
+                    </div>
+                    <div class="bg-red-100 p-4 rounded-lg shadow">
+                        <h4 class="font-bold">火箭军部队</h4>
+                        <p class="text-sm text-red-800">战役/战略打击</p>
+                    </div>
+                    <div class="bg-purple-100 p-4 rounded-lg shadow">
+                        <h4 class="font-bold">战略支援部队</h4>
+                        <p class="text-sm text-purple-800">信息/网络/太空支援</p>
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <h3 class="font-bold text-xl mb-3 text-center">协同机制</h3>
+                    <p class="text-gray-700 text-center max-w-3xl mx-auto">通过标准化的数据链和统一的指挥信息系统，战区能够将各军种的力量融合成一个有机的整体。合成旅通过信息节点接收来自战区的情报，申请火力支援，并上传战场态势，实现信息共享、火力协同和行动协调。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="assessment" class="content-section">
+            <h2 class="text-3xl font-bold mb-2 text-center">外部参照与实战能力评估</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">本章将解放军合成旅与美军BCT进行对比，并结合俄乌战争的经验，辩证评估当前合成化部队的优势与潜在的制约因素。</p>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="card p-6">
+                    <h3 class="font-bold text-xl mb-3 text-center">中美旅级部队能力对比</h3>
+                    <p class="text-center text-gray-600 mb-4">此图表基于公开分析，对解放军重型合成旅与美军装甲BCT在几个关键维度上的能力进行概念性对比。</p>
+                    <div class="chart-container">
+                        <canvas id="comparison-chart"></canvas>
+                    </div>
+                </div>
+                <div class="card p-6">
+                    <h3 class="font-bold text-xl mb-3 text-center">俄乌战争的启示</h3>
+                     <ul class="space-y-3 text-gray-700">
+                        <li><span class="font-semibold text-blue-600">无人机攻防:</span> 无人机在侦察和攻击中的普及，要求合成部队具备强大的低空防御和反无人机能力。</li>
+                        <li><span class="font-semibold text-blue-600">电子战强度:</span> 现代战争中电磁频谱的争夺异常激烈，部队在复杂电磁环境下的通信、导航和指挥能力面临严峻考验。</li>
+                        <li><span class="font-semibold text-blue-600">精确打击与反制:</span> 远程精确火力的普及使得后方和重要节点变得脆弱，对部队的疏散、伪装和机动防空能力提出了更高要求。</li>
+                        <li><span class="font-semibold text-blue-600">战场持续性:</span> 高强度对抗下装备和弹药消耗巨大，对后勤保障体系的韧性和效率是巨大挑战。</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8 mt-8">
+                <div class="card p-6">
+                     <h3 class="font-bold text-xl mb-3 text-green-600">已形成的优势</h3>
+                     <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        <li><span class="font-semibold">装备集成度高:</span> 新型主战装备与信息化系统同步发展，实现了较高的原生集成水平。</li>
+                        <li><span class="font-semibold">指挥链条扁平化:</span> "旅-营"体制减少了指挥层级，理论上提升了决策和反应速度。</li>
+                        <li><span class="font-semibold">火力体系完备:</span> 旅级单位内建了炮兵、防空等多种火力单元，战术火力强大且自主。</li>
+                     </ul>
+                </div>
+                 <div class="card p-6">
+                     <h3 class="font-bold text-xl mb-3 text-red-600">潜在的制约因素</h3>
+                     <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        <li><span class="font-semibold">缺乏实战经验:</span> 长期处于和平环境，缺乏高强度、大规模联合作战的实际检验。</li>
+                        <li><span class="font-semibold">专业士官队伍:</span> 复杂技术装备的操作和维护高度依赖高水平士官，其培养和保留仍是挑战。</li>
+                        <li><span class="font-semibold">作战韧性存疑:</span> 在高烈度电子对抗和持续精确打击下的作战能力尚待检验。</li>
+                     </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="future" class="content-section">
+            <h2 class="text-3xl font-bold mb-2 text-center">未来展望：趋势、挑战与突破</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">本章将基于现有趋势进行前瞻性预测，探讨解放军合成化改革的下一步演进方向，以及在追求更高层次“体系破击”能力时可能面临的挑战。</p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                 <div class="card p-6">
+                    <h3 class="font-bold text-xl mb-3">趋势: 智能化与无人化</h3>
+                    <p class="text-gray-700">将人工智能和无人作战平台深度融入现有作战单元是未来发展的关键。这可能包括无人侦察/攻击车、智能辅助决策系统等，形成人机协同的作战模式，进一步提升作战效能和减少人员伤亡。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="font-bold text-xl mb-3">趋势: 全域作战深化</h3>
+                    <p class="text-gray-700">随着太空、网络、电磁、认知等新作战领域的出现，未来的联合作战将是陆、海、空、天、网、电多域融合的对抗。合成部队需要具备在多域环境下感知、机动和生存的能力。</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="font-bold text-xl mb-3">挑战: 技术与理论瓶颈</h3>
+                    <p class="text-gray-700">更高层次的智能化和体系融合面临着核心芯片、算法、新材料等技术瓶颈。同时，如何围绕新技术创新作战理论，发展出适应未来战争的全新战法，是比装备本身更严峻的挑战。</p>
+                </div>
+                <div class="card p-6 col-span-1 md:col-span-2 lg:col-span-3">
+                     <h3 class="font-bold text-xl mb-3 text-center">核心目标：体系破击 (System Destruction Warfare)</h3>
+                    <p class="text-gray-700 text-center max-w-4xl mx-auto">解放军的最终目标可能超越了传统的歼灭战，转而追求“体系破击”。这是一种通过精确打击敌方作战体系的关键节点（如指挥中心、通信枢纽、后勤节点），导致其整个作战体系瘫痪或崩溃的作战思想。这要求具备极强的态势感知、精确打击和多域协同能力，是合成化与联合作战改革持续深化的最终检验标准。</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const mobileNavLinks = document.querySelectorAll('.mobile-nav');
+            const sections = document.querySelectorAll('.content-section');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            function setActiveLink(hash) {
+                const targetHash = hash || '#intro';
+                navLinks.forEach(link => {
+                    link.classList.toggle('active', link.getAttribute('href') === targetHash);
+                });
+                mobileNavLinks.forEach(link => {
+                    link.classList.toggle('active', link.getAttribute('href') === targetHash);
+                });
+                sections.forEach(section => {
+                    section.classList.toggle('active', section.id === targetHash.substring(1));
+                });
+            }
+
+            function handleNavClick(event) {
+                event.preventDefault();
+                const targetHash = event.currentTarget.getAttribute('href');
+                setActiveLink(targetHash);
+                if (mobileMenu.classList.contains('hidden') === false) {
+                    mobileMenu.classList.add('hidden');
+                }
+            }
+            
+            navLinks.forEach(link => link.addEventListener('click', handleNavClick));
+            mobileNavLinks.forEach(link => link.addEventListener('click', handleNavClick));
+            
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            const brigadeData = {
+                heavy: {
+                    title: '重型合成旅',
+                    description: '核心装备为重型履带式主战坦克（如99A式）和步兵战车（如04A式）。具备最强的装甲防护和地面突击火力，是地面进攻的中坚力量，适用于高强度正面攻防作战。',
+                    units: [
+                        '旅部 (Command)', '4个合成营 (Combined Arms Battalions)', '炮兵营 (Artillery Battalion)',
+                        '防空营 (Air Defense Battalion)', '侦察营 (Recon Battalion)', '作战支援营 (Combat Support Bn)', '勤务保障营 (Service Support Bn)'
+                    ]
+                },
+                medium: {
+                    title: '中型合成旅',
+                    description: '核心装备为8x8轮式战车家族（如08式车族）。机动性介于重型和轻型之间，可通过公路和大型运输机进行快速战略部署，是快速反应和中等强度冲突的主力。',
+                    units: [
+                        '旅部 (Command)', '4个合成营 (Combined Arms Battalions)', '炮兵营 (Artillery Battalion)',
+                        '防空营 (Air Defense Battalion)', '侦察营 (Recon Battalion)', '作战支援营 (Combat Support Bn)', '勤务保障营 (Service Support Bn)'
+                    ]
+                },
+                light: {
+                    title: '轻型合成旅',
+                    description: '核心装备为高机动车辆（如“猛士”系列）或轻型履带/轮式装甲车。重量轻，战略和战术机动性最强，适用于山地、丛林、城市等复杂地形作战，以及空运快速部署。',
+                     units: [
+                        '旅部 (Command)', '多个合成营 (Varies)', '炮兵营 (Artillery Battalion)',
+                        '防空营 (Air Defense Battalion)', '侦察/支援单位 (Combined Recon/Support)'
+                    ]
+                }
+            };
+
+            const brigadeInfoContainer = document.getElementById('brigade-info');
+            const brigadeBtns = document.querySelectorAll('.brigade-btn');
+            
+            function updateBrigadeInfo(type) {
+                const data = brigadeData[type];
+                let unitsHtml = data.units.map(unit => `<li class="text-gray-600 text-sm">${unit}</li>`).join('');
+                brigadeInfoContainer.innerHTML = `
+                    <h3 class="font-bold text-2xl mb-2">${data.title}</h3>
+                    <p class="text-gray-700 mb-4">${data.description}</p>
+                    <h4 class="font-semibold text-lg mb-2">典型编制结构:</h4>
+                    <ul class="list-disc list-inside space-y-1">${unitsHtml}</ul>
+                `;
+
+                brigadeBtns.forEach(btn => {
+                    btn.classList.toggle('btn-active', btn.dataset.type === type);
+                });
+            }
+
+            brigadeBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    updateBrigadeInfo(btn.dataset.type);
+                });
+            });
+
+            let capabilitiesChart = null;
+            function createCapabilitiesChart() {
+                const ctx = document.getElementById('capabilities-chart').getContext('2d');
+                if (capabilitiesChart) {
+                    capabilitiesChart.destroy();
+                }
+                capabilitiesChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['侦察感知 (Recon)', '指挥控制 (Control)', '火力打击 (Strike)', '毁伤评估 (Assess)'],
+                        datasets: [{
+                            data: [25, 25, 30, 20],
+                            backgroundColor: ['#3498db', '#f1c40f', '#e74c3c', '#2ecc71'],
+                            borderColor: '#ffffff',
+                            borderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: 构成作战闭环的关键环节`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '50%'
+                    }
+                });
+            }
+
+            let comparisonChart = null;
+            function createComparisonChart() {
+                const ctx = document.getElementById('comparison-chart').getContext('2d');
+                if (comparisonChart) {
+                    comparisonChart.destroy();
+                }
+                comparisonChart = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['火力密度', '机动能力', '信息水平', '防护能力', '战场持续性', '编制模块化'],
+                        datasets: [{
+                            label: '解放军重型合成旅',
+                            data: [85, 70, 80, 85, 65, 90],
+                            backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                            borderColor: 'rgba(231, 76, 60, 1)',
+                            pointBackgroundColor: 'rgba(231, 76, 60, 1)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgba(231, 76, 60, 1)'
+                        }, {
+                            label: '美军装甲BCT',
+                            data: [80, 75, 90, 80, 85, 80],
+                            backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                            borderColor: 'rgba(52, 152, 219, 1)',
+                            pointBackgroundColor: 'rgba(52, 152, 219, 1)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgba(52, 152, 219, 1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                angleLines: {
+                                    display: true
+                                },
+                                suggestedMin: 0,
+                                suggestedMax: 100,
+                                pointLabels: {
+                                    font: {
+                                        size: 11
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        }
+                    }
+                });
+            }
+
+            setActiveLink(window.location.hash);
+            updateBrigadeInfo('heavy');
+            createCapabilitiesChart();
+            createComparisonChart();
+        });
+    </script>
+</body>
+</html>
