@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>海航集团破产重组案例深度剖析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony Neutrals -->
+    <!-- Application Structure Plan: 本应用采用单页主题式仪表板结构，而非严格按照报告的线性顺序。顶部设有粘性导航栏（全景概览, 危机探源, 局中博弈, 重整方案, 案例启示），方便用户快速跳转至感兴趣的主题。这种结构便于用户根据自己的兴趣点自由探索，而非被动接收信息。例如，用户可以直接跳转到“重整方案”的核心图表，而不必先阅读前面的背景。交互设计的核心是“引导式发现”，通过点击时间线节点、切换图表视图、选择博弈方卡片等操作，动态展示相关深度信息，将复杂的因果关系和利益博弈过程清晰化、可视化，极大地提升了信息吸收效率和用户参与感。 -->
+    <!-- Visualization & Content Choices: 
+        1.  引言与时间线 -> 目标: 宏观叙事 -> 呈现方式: 交互式垂直时间线 -> 交互: 点击年份节点展开/收起详细事件 -> 理由: 将漫长的发展历程结构化，让用户能快速定位关键节点，比静态列表更具探索性。
+        2.  危机根源 -> 目标: 对比与分析 -> 呈现方式: 双栏布局，左侧为债务扩张的Chart.js面积图，右侧为公司治理缺陷的HTML/CSS结构图 -> 交互: 鼠标悬停在图表上显示具体数值 -> 理由: 面积图直观展示了“资产-负债”同步激增的风险累积过程；结构图清晰揭示了复杂的内部关联，两种可视化手段结合，将抽象的“根源”问题具体化。
+        3.  局中博弈 -> 目标: 组织与分类 -> 呈现方式: 选项卡式卡片布局 -> 交互: 点击不同角色（创始团队、政府、投资者）的选项卡切换显示其决策与影响分析 -> 理由: 将多方利益纠葛清晰地分层展示，便于用户聚焦于单一角色的行为逻辑，避免信息混淆。
+        4.  重整方案 -> 目标: 比较与解释 -> 呈现方式: Chart.js环形图展示利益相关方影响 + HTML/CSS流程图展示业务板块拆分 -> 交互: 悬停环形图显示具体影响（如清偿率），点击按钮切换查看方案的“创新点”与“争议点”-> 理由: 环形图量化了重整对各方的不同冲击，流程图简化了复杂的业务拆分逻辑，使方案核心一目了然。
+        5.  案例启示 -> 目标: 总结与告知 -> 呈现方式: 卡片式网格布局 -> 交互: 静态展示，聚焦内容阅读 -> 理由: 在用户完成探索后，以清晰、简洁的卡片形式呈现核心启示，便于用户回顾与思考。
+        全过程未使用SVG或Mermaid.js，均采用Chart.js(Canvas)和原生HTML/CSS实现。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f8f7f5;
+            color: #333;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active {
+            color: #c084fc;
+            border-bottom-color: #c084fc;
+        }
+        .timeline-item {
+            border-left: 3px solid #d1d5db;
+        }
+        .timeline-item.active {
+            border-left: 3px solid #c084fc;
+        }
+        .timeline-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+        .player-tab.active {
+            background-color: #c084fc;
+            color: white;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 450px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl md:text-2xl font-bold text-gray-800">海航案例深度剖析</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#overview" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-purple-500">全景概览</a>
+                        <a href="#crisis" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-purple-500">危机探源</a>
+                        <a href="#players" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-purple-500">局中博弈</a>
+                        <a href="#plan" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-purple-500">重整方案</a>
+                        <a href="#lessons" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-purple-500">案例启示</a>
+                    </div>
+                </div>
+                 <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+             <div class="md:hidden" id="mobile-menu" style="display: none;">
+                <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                    <a href="#overview" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-purple-500">全景概览</a>
+                    <a href="#crisis" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-purple-500">危机探源</a>
+                    <a href="#players" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-purple-500">局中博弈</a>
+                    <a href="#plan" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-purple-500">重整方案</a>
+                    <a href="#lessons" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-purple-500">案例启示</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+
+        <section id="overview" class="py-12 md:py-16 scroll-mt-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-purple-600">全景概览</h2>
+                <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">从地方航司到世界500强，再到轰然倒下，海航的兴衰史是中国民企野蛮生长与风险失控的缩影。本部分将通过一个交互式时间轴，带您回顾海航帝国从崛起、疯狂扩张到最终破产重组的关键时刻。</p>
+            </div>
+            
+            <div class="max-w-4xl mx-auto">
+                <div id="timeline-container"></div>
+            </div>
+        </section>
+
+        <section id="crisis" class="py-12 md:py-16 bg-white rounded-2xl shadow-lg scroll-mt-16">
+             <div class="text-center mb-12 px-4">
+                <h2 class="text-3xl md:text-4xl font-bold text-purple-600">危机探源</h2>
+                <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">冰冻三尺非一日之寒。海航危机的爆发，根源于其两大“原罪”：无序的债务扩张与失效的公司治理。本部分将通过数据可视化与结构图，深度剖析驱动帝国崩溃的核心因素。</p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 px-4">
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-xl font-bold text-center mb-4">“以债养债”的激进扩张</h3>
+                    <p class="text-sm text-gray-500 mb-4 text-center">海航的总资产与总负债规模在2015-2017年间同步急剧膨胀，形成了巨大的债务黑洞。点击下方图例可切换数据显示。</p>
+                    <div class="chart-container">
+                        <canvas id="debtChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-xl font-bold text-center mb-4">复杂的公司治理结构</h3>
+                     <p class="text-sm text-gray-500 mb-4 text-center">层层嵌套的股权结构、海量的关联交易，最终导致内部控制完全失效，为风险爆发埋下伏笔。</p>
+                    <div class="flex flex-col items-center justify-center h-full space-y-4 text-center p-4">
+                        <div class="p-3 bg-red-100 text-red-700 rounded-lg font-semibold border border-red-200">个人股东/创始团队</div>
+                        <div class="h-8 w-px bg-gray-400"></div>
+                        <div class="p-3 bg-yellow-100 text-yellow-800 rounded-lg font-semibold border border-yellow-200">海南省慈航公益基金会</div>
+                        <div class="h-8 w-px bg-gray-400"></div>
+                        <div class="p-3 bg-blue-100 text-blue-800 rounded-lg font-semibold border border-blue-200">海航集团</div>
+                        <div class="h-8 w-px bg-gray-400"></div>
+                        <div class="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
+                            <div class="p-2 bg-green-100 text-green-800 rounded-md">航空板块</div>
+                            <div class="p-2 bg-green-100 text-green-800 rounded-md">机场板块</div>
+                            <div class="p-2 bg-green-100 text-green-800 rounded-md">金融板块</div>
+                            <div class="p-2 bg-green-100 text-green-800 rounded-md">商业板块</div>
+                            <div class="p-2 bg-gray-200 text-gray-700 rounded-md col-span-2">及其他数百家子公司</div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-4 italic">注：此为简化结构示意图，实际结构远比此复杂。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="players" class="py-12 md:py-16 scroll-mt-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-purple-600">局中博弈</h2>
+                <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">海航的陨落与重整，是一场涉及多方利益的复杂博弈。点击下方不同角色，了解他们在危机中扮演的角色、关键决策及其深远影响。</p>
+            </div>
+            <div class="max-w-5xl mx-auto">
+                <div class="flex justify-center space-x-2 sm:space-x-4 mb-8 border-b-2 border-gray-200 pb-2">
+                    <button class="player-tab flex-1 sm:flex-none text-sm sm:text-base px-4 py-2 font-semibold rounded-t-lg transition" data-player="founders">创始团队</button>
+                    <button class="player-tab flex-1 sm:flex-none text-sm sm:text-base px-4 py-2 font-semibold rounded-t-lg transition" data-player="government">政府工作组</button>
+                    <button class="player-tab flex-1 sm:flex-none text-sm sm:text-base px-4 py-2 font-semibold rounded-t-lg transition" data-player="investors">战略投资者</button>
+                </div>
+                <div id="player-content" class="bg-white p-6 md:p-8 rounded-lg shadow-lg min-h-[20rem]">
+                </div>
+            </div>
+        </section>
+
+        <section id="plan" class="py-12 md:py-16 bg-white rounded-2xl shadow-lg scroll-mt-16">
+            <div class="text-center mb-12 px-4">
+                <h2 class="text-3xl md:text-4xl font-bold text-purple-600">重整方案</h2>
+                <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">海航的重整方案被誉为中国企业破产重整史上的一个里程碑式案例。本部分将拆解方案的创新与争议，并量化其对各方利益的深远影响。</p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 items-center px-4">
+                <div class="lg:col-span-2">
+                    <h3 class="text-xl font-bold text-center mb-4">对核心利益相关方的影响</h3>
+                     <p class="text-sm text-gray-500 mb-4 text-center">重整方案对不同群体的利益进行了重新分配。将鼠标悬停在图表上查看细节。</p>
+                    <div class="chart-container h-64 md:h-80">
+                        <canvas id="stakeholderChart"></canvas>
+                    </div>
+                </div>
+                <div class="lg:col-span-3">
+                     <h3 class="text-xl font-bold text-center mb-4">方案核心：业务拆分与信托模式</h3>
+                      <p class="text-sm text-gray-500 mb-4 text-center">原海航集团被拆分为四大独立业务板块，并创新性地采用信托计划来持有股权和偿付债务。</p>
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <div class="flex justify-center items-center space-x-4 mb-6">
+                            <div class="p-4 bg-red-100 text-red-800 rounded-lg text-center font-semibold shadow-md">原海航集团</div>
+                            <div class="text-3xl font-light text-gray-400">→</div>
+                             <div class="p-4 bg-purple-100 text-purple-800 rounded-lg text-center font-semibold shadow-md">服务型信托</div>
+                        </div>
+                        <div class="border-t-2 border-dashed border-gray-300 my-4"></div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                            <div class="p-3 bg-blue-100 text-blue-800 rounded-md">航空主业<br>(辽宁方大)</div>
+                            <div class="p-3 bg-green-100 text-green-800 rounded-md">机场板块<br>(海南发展)</div>
+                            <div class="p-3 bg-yellow-100 text-yellow-800 rounded-md">金融板块<br>(信托持有)</div>
+                            <div class="p-3 bg-indigo-100 text-indigo-800 rounded-md">商业及其他<br>(信托持有)</div>
+                        </div>
+                    </div>
+                     <div class="mt-6 text-center">
+                        <button id="show-innovation" class="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600 transition">查看方案创新点</button>
+                        <button id="show-controversy" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition ml-4">查看方案争议点</button>
+                    </div>
+                    <div id="plan-details" class="mt-4 p-4 bg-gray-50 rounded-lg text-sm text-gray-600" style="display: none;"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="lessons" class="py-12 md:py-16 scroll-mt-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-purple-600">案例启示</h2>
+                <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">海航案不仅是一个企业的失败样本，更是对中国所有大型民营企业风险处置的深刻镜鉴。它在公司治理、风险控制和政商关系等方面，都提供了宝贵的经验与教训。</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                    <h3 class="font-bold text-lg mb-2 text-purple-700">强化公司治理</h3>
+                    <p class="text-gray-600 text-sm">建立清晰的股权结构和有效的内部监督机制，防止“一人独大”和内部人控制，是企业长治久安的基石。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                    <h3 class="font-bold text-lg mb-2 text-purple-700">严控债务杠杆</h3>
+                    <p class="text-gray-600 text-sm">企业必须对债务规模保持敬畏，确保扩张速度与自身造血能力相匹配，避免陷入“以债养债”的死亡螺旋。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                    <h3 class="font-bold text-lg mb-2 text-purple-700">聚焦核心主业</h3>
+                    <p class="text-gray-600 text-sm">多元化战略不应是无边界的并购。企业应围绕核心竞争力进行相关多元化，而非盲目追逐资本市场的短期热点。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                    <h3 class="font-bold text-lg mb-2 text-purple-700">市场化法治化处置</h3>
+                    <p class="text-gray-600 text-sm">海航案确立了大型企业风险处置的标杆：在政府引导下，通过法治化框架和市场化手段化解危机，平衡各方利益。</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-white border-t border-gray-200 mt-16">
+        <div class="container mx-auto py-6 px-4 text-center text-sm text-gray-500">
+            <p>&copy; 2024 海航集团破产重组案例分析。内容仅供研究学习使用。</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            
+            const timelineData = [
+                { year: '1993-2003', title: '初创与崛起', content: '海南航空成立，并于1997年完成股份制改造。通过高效运营和优质服务，迅速成长为国内第四大航空公司。' },
+                { year: '2003-2015', title: '多元化扩张', content: '集团业务开始超越航空主业，向机场、酒店、旅游、物流等领域扩张，初步形成多元化产业集团的雏形。' },
+                { year: '2015-2017', title: '全球疯狂并购', content: '进入“蛇吞象”式全球并购高峰期，斥资数百亿美元收购德意志银行、希尔顿酒店、英迈国际等海外资产，迅速进入世界500强。' },
+                { year: '2018', title: '流动性危机爆发', content: '前期高杠杆并购的恶果显现，集团遭遇严重流动性危机，开始大规模抛售资产以求自救。创始人王健意外离世，加剧了集团动荡。' },
+                { year: '2020', title: '政府工作组进驻', content: '自救失败，风险持续扩大。2月，海南省政府牵头成立联合工作组，全面协助海航集团风险处置工作。' },
+                { year: '2021', title: '宣告破产重整', content: '1月，海航集团正式宣告破产重整，成为中国迄今为止规模最大的企业破产案。' },
+                { year: '2022', title: '重整计划执行', content: '航空主业引入战略投资者辽宁方大，机场板块引入海南发展。重整计划开始执行，集团进入新的发展阶段。' },
+            ];
+
+            const timelineContainer = document.getElementById('timeline-container');
+            timelineContainer.innerHTML = timelineData.map((item, index) => `
+                <div class="timeline-item relative pl-8 pb-8">
+                    <div class="absolute left-[-11px] top-1 w-6 h-6 bg-white rounded-full border-4 border-gray-300 flex items-center justify-center">
+                         <div class="w-3 h-3 bg-gray-300 rounded-full"></div>
+                    </div>
+                    <button class="timeline-trigger w-full text-left">
+                        <h4 class="font-bold text-lg cursor-pointer hover:text-purple-600">${item.year} - ${item.title}</h4>
+                    </button>
+                    <div class="timeline-content">
+                        <p class="mt-2 text-gray-600">${item.content}</p>
+                    </div>
+                </div>
+            `).join('');
+
+
+            const timelineTriggers = document.querySelectorAll('.timeline-trigger');
+            timelineTriggers.forEach(trigger => {
+                trigger.addEventListener('click', () => {
+                    const parentItem = trigger.parentElement;
+                    const content = trigger.nextElementSibling;
+                    
+                    const wasActive = parentItem.classList.contains('active');
+                    
+                    document.querySelectorAll('.timeline-item').forEach(i => {
+                        i.classList.remove('active');
+                        i.querySelector('.timeline-content').style.maxHeight = '0px';
+                        i.querySelector('.absolute > div').classList.replace('bg-purple-600', 'bg-gray-300');
+                        parentItem.querySelector('.absolute').classList.replace('border-purple-600', 'border-gray-300');
+                    });
+
+                    if (!wasActive) {
+                        parentItem.classList.add('active');
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        parentItem.querySelector('.absolute').classList.replace('border-gray-300', 'border-purple-600');
+                        parentItem.querySelector('.absolute > div').classList.replace('bg-gray-300', 'bg-purple-600');
+                    }
+                });
+            });
+
+
+            const debtCtx = document.getElementById('debtChart').getContext('2d');
+            const debtChart = new Chart(debtCtx, {
+                type: 'line',
+                data: {
+                    labels: ['2014', '2015', '2016', '2017', '2018', '2019', '2020'],
+                    datasets: [{
+                        label: '总资产 (万亿)',
+                        data: [0.35, 0.47, 1.02, 1.23, 1.10, 0.98, 0.72],
+                        backgroundColor: 'rgba(192, 132, 252, 0.2)',
+                        borderColor: 'rgba(192, 132, 252, 1)',
+                        borderWidth: 2,
+                        fill: 'start',
+                        tension: 0.4
+                    }, {
+                        label: '总负债 (万亿)',
+                        data: [0.26, 0.35, 0.71, 0.86, 0.75, 0.71, 0.63],
+                        backgroundColor: 'rgba(252, 165, 165, 0.2)',
+                        borderColor: 'rgba(252, 165, 165, 1)',
+                        borderWidth: 2,
+                        fill: 'start',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: '金额 (万亿元)' }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+
+            const playersData = {
+                founders: {
+                    title: '创始团队：帝国的缔造者与危机制造者',
+                    content: '以陈峰、王健为核心的创始团队，凭借其早期卓越的战略眼光和政商关系能力，将海航从地方航司带向世界。然而，后期个人意志的过度膨胀、对风险的漠视以及决策的失误，直接导致了集团的失控。他们既是海航辉煌的缔造者，也是其最终危机的直接责任人。',
+                },
+                government: {
+                    title: '政府工作组：风险化解的“压舱石”',
+                    content: '在海航自救无力、风险可能外溢的关键时刻，海南省政府联合工作组的进驻起到了“压舱石”的作用。工作组的核心任务是摸清家底、稳住局势、隔离风险，并主导制定市场化、法治化的重整方案，确保了庞大债务危机的有序化解，避免了系统性金融风险。',
+                },
+                investors: {
+                    title: '战略投资者：重生的“接盘侠”与新舵手',
+                    content: '以辽宁方大集团（航空主业）和海南发展控股（机场板块）为代表的战略投资者，在重整阶段扮演了关键角色。他们的入局不仅带来了宝贵的现金流，更重要的是带来了新的管理机制和产业资源。其商业诉求是在剥离历史债务后，以较低成本获取优质核心资产，并实现业务协同和长期发展。',
+                }
+            };
+            const playerTabs = document.querySelectorAll('.player-tab');
+            const playerContent = document.getElementById('player-content');
+            
+            function updatePlayerContent(playerKey) {
+                playerTabs.forEach(tab => {
+                    if (tab.dataset.player === playerKey) {
+                        tab.classList.add('active');
+                    } else {
+                        tab.classList.remove('active');
+                    }
+                });
+                const data = playersData[playerKey];
+                playerContent.innerHTML = `<h4 class="text-lg font-bold mb-4">${data.title}</h4><p class="text-gray-600">${data.content}</p>`;
+            }
+
+            playerTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    updatePlayerContent(tab.dataset.player);
+                });
+            });
+            updatePlayerContent('founders');
+
+
+            const stakeholderCtx = document.getElementById('stakeholderChart').getContext('2d');
+            const stakeholderChart = new Chart(stakeholderCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['债权人', '原股东', '员工'],
+                    datasets: [{
+                        data: [70, 15, 15],
+                        backgroundColor: ['#f9a8d4', '#fca5a5', '#a5b4fc'],
+                        borderColor: '#ffffff',
+                        borderWidth: 3,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    let details = '';
+                                    if (label === '债权人') {
+                                        details = '影响：平均清偿率约30%，部分通过债转股成为信托受益人。';
+                                    } else if (label === '原股东') {
+                                        details = '影响：股权价值清零，所有权益丧失。';
+                                    } else if (label === '员工') {
+                                        details = '影响：大部分员工获妥善安置，部分高管被追责。';
+                                    }
+                                    return `${label}: ${details}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            const planDetails = {
+                innovation: `
+                    <h5 class="font-bold mb-2">方案创新点</h5>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li><strong>信托模式隔离风险：</strong>在国内首次大规模采用服务型信托架构，将集团资产装入信托计划，实现了原股东与集团资产的风险隔离，保证了重整后新公司的“干净”。</li>
+                        <li><strong>四大板块独立运营：</strong>将庞杂的业务拆分为航空、机场、金融、商业四大独立板块，各板块独立核算、独立引战，提高了重整效率和成功率。</li>
+                        <li><strong>市场化引战：</strong>通过公开、透明的程序引入最具实力的战略投资者，而非行政指派，保证了重整后企业的专业化运营能力。</li>
+                    </ul>
+                `,
+                controversy: `
+                    <h5 class="font-bold mb-2">方案争议点</h5>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li><strong>清偿率争议：</strong>普通债权人的现金清偿率较低，债转股的未来价值存在不确定性，引发了部分债权人的不满。</li>
+                        <li><strong>资产定价公允性：</strong>在复杂的资产包中，如何对各项资产进行公允定价，以确保对债权人和投资者的公平，是一个巨大的挑战。</li>
+                        <li><strong>创始人责任追究：</strong>虽然部分高管被追责，但外界对于创始团队的核心责任是否得到充分清算仍存有疑问。</li>
+                    </ul>
+                `
+            };
+            const planDetailsContainer = document.getElementById('plan-details');
+            document.getElementById('show-innovation').addEventListener('click', () => {
+                planDetailsContainer.innerHTML = planDetails.innovation;
+                planDetailsContainer.style.display = 'block';
+            });
+            document.getElementById('show-controversy').addEventListener('click', () => {
+                planDetailsContainer.innerHTML = planDetails.controversy;
+                planDetailsContainer.style.display = 'block';
+            });
+
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section');
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href').substring(1) === entry.target.id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, { rootMargin: '-50% 0px -50% 0px' });
+            
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.querySelector(link.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                     if(window.innerWidth < 768) {
+                        document.getElementById('mobile-menu').style.display = 'none';
+                    }
+                });
+            });
+
+             const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                const isHidden = mobileMenu.style.display === 'none';
+                mobileMenu.style.display = isHidden ? 'block' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>

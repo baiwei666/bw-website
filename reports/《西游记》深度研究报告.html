@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>《西游记》深度研究报告：交互式探索</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Scholar (Stone, Slate, Amber) -->
+    <!-- Application Structure Plan: 本应用采用主题式导航结构，而非报告的线性章节。顶部导航栏分为“神魔谱”、“思想核”、“意象解”和“万象传”四个核心模块，引导用户自由探索。这种设计将报告中的人物关系、核心思想、象征意义和全球影响等关键信息提炼为独立的、可交互的探索路径。用户可以从任何感兴趣的点切入，通过点击、切换和筛选等操作深入了解具体内容，从而将静态的学术文本转化为动态的知识发现之旅，极大地提升了信息的可及性和用户的参与感。 -->
+    <!-- Visualization & Content Choices: 报告信息->目标->呈现方式->交互->理由->实现方式。1. 人物关系网络 -> 组织与关系 -> HTML/CSS网格布局 -> 点击卡片高亮关系并显示详情 -> 比静态图更直观，动态反馈强 -> JS事件监听。2. 核心主题 -> 告知与比较 -> 可点击的卡片列表 -> 点击卡片展开或切换显示详细文本 -> 保持界面整洁，按需加载信息 -> JS内容切换。3. 关键意象 -> 深度分析 -> 选项卡式内容区 -> 点击标签切换“心猿”、“二心”等分析文本 -> 结构清晰，便于聚焦特定概念 -> JS内容切换。4. 跨媒介改编与传播 -> 变化与比较 -> Chart.js水平条形图+动态列表 -> 点击图表条目可筛选下方对应的实例列表 -> 将宏观趋势与具体案例关联，互动性强 -> Chart.js Canvas + JS事件处理。 -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f5f5f4; /* stone-100 */
+            color: #1e293b; /* slate-800 */
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active {
+            border-bottom-color: #f59e0b; /* amber-500 */
+            color: #b45309; /* amber-700 */
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 40vh;
+            max-height: 500px;
+        }
+        .tab-button.active {
+            background-color: #f59e0b;
+            color: white;
+        }
+        .character-card.highlight {
+            outline: 2px solid #f59e0b;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+        }
+        .relationship-line {
+            position: absolute;
+            background-color: rgba(245, 158, 11, 0.5);
+            height: 2px;
+            transform-origin: 0 0;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .relationship-line.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-stone-200 shadow-md sticky top-0 z-50">
+            <div class="container mx-auto px-4 py-4">
+                <h1 class="text-2xl md:text-3xl font-bold text-slate-900">《西游记》深度研究报告</h1>
+                <p class="text-sm text-slate-600 mt-1">从文本结构到全球文化符号的交互式探索</p>
+            </div>
+        </header>
+
+        <nav class="bg-white border-b border-stone-200">
+            <div class="container mx-auto px-4 flex justify-center space-x-4 sm:space-x-8">
+                <button data-section="section-characters" class="nav-link active py-4 px-2 text-sm sm:text-base font-semibold text-slate-700 hover:text-amber-600">神魔谱</button>
+                <button data-section="section-themes" class="nav-link py-4 px-2 text-sm sm:text-base font-semibold text-slate-700 hover:text-amber-600">思想核</button>
+                <button data-section="section-symbols" class="nav-link py-4 px-2 text-sm sm:text-base font-semibold text-slate-700 hover:text-amber-600">意象解</button>
+                <button data-section="section-legacy" class="nav-link py-4 px-2 text-sm sm:text-base font-semibold text-slate-700 hover:text-amber-600">万象传</button>
+            </div>
+        </nav>
+
+        <main class="container mx-auto px-4 py-8 flex-grow">
+            <section id="section-characters" class="content-section active">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-slate-800">叙事迷宫：人物关系网络</h2>
+                    <p class="mt-2 text-slate-600 max-w-3xl mx-auto">本模块系统梳理了《西游记》中错综复杂的人物关系。您可以点击任意角色卡片，高亮其主要互动关系，并在侧边栏查看其简介与在神魔佛三界中的定位。这有助于理解取经团队内外、三界之间的权力结构与互动模式。</p>
+                </div>
+                <div class="lg:flex lg:space-x-8">
+                    <div class="flex-grow relative">
+                        <div id="character-grid" class="grid grid-cols-3 md:grid-cols-5 gap-4 md:gap-8 items-center justify-center">
+                            <div id="wukong" data-id="wukong" data-relations="tangseng,bajie,shawujing,guanyin,subhuti,jadeemperor" class="character-card bg-white p-3 rounded-lg shadow cursor-pointer text-center">孙悟空</div>
+                            <div id="tangseng" data-id="tangseng" data-relations="wukong,bajie,shawujing,guanyin,buddha" class="character-card bg-white p-3 rounded-lg shadow cursor-pointer text-center col-start-2">唐僧</div>
+                            <div id="bajie" data-id="bajie" data-relations="wukong,tangseng,shawujing,guanyin,chang-e" class="character-card bg-white p-3 rounded-lg shadow cursor-pointer text-center">猪八戒</div>
+                            <div id="shawujing" data-id="shawujing" data-relations="wukong,tangseng,bajie,guanyin,jadeemperor" class="character-card bg-white p-3 rounded-lg shadow cursor-pointer text-center col-start-2">沙悟净</div>
+                            <div id="guanyin" data-id="guanyin" data-relations="wukong,tangseng,bajie,shawujing,buddha" class="character-card bg-white p-3 rounded-lg shadow cursor-pointer text-center md:col-start-1 md:row-start-1">观音菩萨</div>
+                             <div id="buddha" data-id="buddha" data-relations="guanyin,tangseng,wukong" class="character-card bg-white p-3 rounded-lg shadow cursor-pointer text-center md:col-start-1 md:row-start-2">如来佛祖</div>
+                            <div id="jadeemperor" data-id="jadeemperor" data-relations="wukong,shawujing,laojun" class="character-card bg-white p-3 rounded-lg shadow cursor-pointer text-center md:col-start-5 md:row-start-1">玉皇大帝</div>
+                             <div id="laojun" data-id="laojun" data-relations="jadeemperor,wukong" class="character-card bg-white p-3 rounded-lg shadow cursor-pointer text-center md:col-start-5 md:row-start-2">太上老君</div>
+                             <div id="subhuti" data-id="subhuti" data-relations="wukong" class="character-card bg-white p-3 rounded-lg shadow cursor-pointer text-center md:col-start-1 md:row-start-3">菩提祖师</div>
+                             <div id="chang-e" data-id="chang-e" data-relations="bajie" class="character-card bg-white p-3 rounded-lg shadow cursor-pointer text-center md:col-start-5 md:row-start-3">嫦娥</div>
+                        </div>
+                    </div>
+                    <div class="lg:w-1/3 mt-8 lg:mt-0 bg-white p-6 rounded-lg shadow-inner">
+                        <h3 id="character-name" class="text-xl font-bold text-amber-700">请选择一个角色</h3>
+                        <p id="character-description" class="mt-4 text-slate-700 leading-relaxed">点击左侧的人物卡片，查看他们的详细信息以及与其他角色的关系。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section-themes" class="content-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-slate-800">万象纷呈：核心主题解构</h2>
+                    <p class="mt-2 text-slate-600 max-w-3xl mx-auto">《西游记》不仅是神魔小说，更蕴含了深刻的哲学与社会思考。本模块聚焦于文本的四大核心主题。请点击下方的卡片，深入探索小说在宗教哲思、政治讽喻、个人成长以及道佛冲突等方面的丰富内涵。</p>
+                </div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="theme-card card bg-white p-6 rounded-lg shadow cursor-pointer" data-theme="religion">
+                        <h3 class="text-xl font-bold text-slate-800">宗教哲思</h3>
+                        <p class="mt-2 text-slate-600">佛、道、儒三教合一的思想，以及“明心见性”的修行观。</p>
+                    </div>
+                    <div class="theme-card card bg-white p-6 rounded-lg shadow cursor-pointer" data-theme="politics">
+                        <h3 class="text-xl font-bold text-slate-800">政治讽喻</h3>
+                        <p class="mt-2 text-slate-600">对天庭官僚体系与人间王朝政治的辛辣讽刺。</p>
+                    </div>
+                    <div class="theme-card card bg-white p-6 rounded-lg shadow cursor-pointer" data-theme="growth">
+                        <h3 class="text-xl font-bold text-slate-800">成长寓言</h3>
+                        <p class="mt-2 text-slate-600">取经之旅作为一场心灵试炼，主要角色的蜕变与成长。</p>
+                    </div>
+                    <div class="theme-card card bg-white p-6 rounded-lg shadow cursor-pointer" data-theme="conflict">
+                        <h3 class="text-xl font-bold text-slate-800">道佛之争</h3>
+                        <p class="mt-2 text-slate-600">小说中显性与隐性的道教与佛教势力的冲突与融合。</p>
+                    </div>
+                </div>
+                <div id="theme-details" class="mt-8 bg-white p-6 rounded-lg shadow-inner min-h-[200px]">
+                    <h3 id="theme-title" class="text-2xl font-bold text-amber-700">请选择一个主题</h3>
+                    <p id="theme-content" class="mt-4 text-slate-700 leading-relaxed">点击上方的主题卡片，以加载详细的解构分析。</p>
+                </div>
+            </section>
+
+            <section id="section-symbols" class="content-section">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-slate-800">象征与原型：关键意象分析</h2>
+                    <p class="mt-2 text-slate-600 max-w-3xl mx-auto">深入文本肌理，解读《西游记》中最具阐释空间的符号与情节。本模块采用文本细读与文化比较的方法，通过切换下方的主题，您可以专题研究“心猿”的驯服、“二心”的搏杀等关键意象，揭示其深层寓意与文化原型。</p>
+                </div>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="md:w-1/3">
+                        <div class="space-y-4">
+                            <button class="symbol-tab-button tab-button w-full text-left p-4 rounded-lg bg-white shadow card" data-symbol="mind-ape">
+                                <h4 class="font-bold text-lg">“心猿”的驯服</h4>
+                                <p class="text-sm text-slate-600 mt-1">孙悟空作为“心猿”的象征意义与修行逻辑。</p>
+                            </button>
+                            <button class="symbol-tab-button tab-button w-full text-left p-4 rounded-lg bg-white shadow card" data-symbol="two-minds">
+                                <h4 class="font-bold text-lg">“二心”的搏杀</h4>
+                                <p class="text-sm text-slate-600 mt-1">“真假美猴王”的叙事学与心理学分析。</p>
+                            </button>
+                            <button class="symbol-tab-button tab-button w-full text-left p-4 rounded-lg bg-white shadow card" data-symbol="prototype">
+                                <h4 class="font-bold text-lg">历史与神话原型</h4>
+                                <p class="text-sm text-slate-600 mt-1">主要人物与情节的历史渊源及比较文学关联。</p>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="md:w-2/3 bg-white p-6 rounded-lg shadow-inner">
+                        <h3 id="symbol-title" class="text-2xl font-bold text-amber-700">请选择一个意象</h3>
+                        <div id="symbol-content" class="mt-4 text-slate-700 leading-relaxed space-y-4">
+                            <p>点击左侧的意象进行深度解读。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="section-legacy" class="content-section">
+                 <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-slate-800">流动的遗产：跨媒介改编与全球化传播</h2>
+                    <p class="mt-2 text-slate-600 max-w-3xl mx-auto">《西游记》的生命力远超原著文本，在后世不断获得新生。本模块通过一个交互式图表和动态列表，展示其在不同媒介和文化中的改编与传播。点击图表中的条目，可以筛选下方展示的具体案例，直观感受其作为文化母题的强大生命力。</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="legacyChart"></canvas>
+                </div>
+                <div class="mt-8">
+                    <h3 id="legacy-category-title" class="text-2xl font-bold text-center text-slate-800">部分改编实例</h3>
+                     <div id="legacy-items-container" class="mt-4 grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="legacy-item card bg-white p-4 rounded-lg shadow" data-category="film">
+                            <h4 class="font-bold text-amber-700">86版电视剧《西游记》</h4>
+                            <p class="text-sm text-slate-600 mt-1">中国 | 影视 | 一代人的集体记忆，至今难以超越的经典。</p>
+                        </div>
+                         <div class="legacy-item card bg-white p-4 rounded-lg shadow" data-category="film">
+                            <h4 class="font-bold text-amber-700">电影《大话西游》</h4>
+                            <p class="text-sm text-slate-600 mt-1">中国香港 | 影视 | 后现代解构主义的代表作，影响深远。</p>
+                        </div>
+                        <div class="legacy-item card bg-white p-4 rounded-lg shadow" data-category="games">
+                            <h4 class="font-bold text-amber-700">《黑神话：悟空》</h4>
+                            <p class="text-sm text-slate-600 mt-1">中国 | 游戏 | 备受期待的3A级动作角色扮演游戏，引发全球关注。</p>
+                        </div>
+                         <div class="legacy-item card bg-white p-4 rounded-lg shadow" data-category="east-asia">
+                            <h4 class="font-bold text-amber-700">《龙珠》(Dragon Ball)</h4>
+                            <p class="text-sm text-slate-600 mt-1">日本 | 动漫 | 早期故事与角色设定深受《西游记》启发。</p>
+                        </div>
+                         <div class="legacy-item card bg-white p-4 rounded-lg shadow" data-category="east-asia">
+                            <h4 class="font-bold text-amber-700">韩国影视与游戏改编</h4>
+                            <p class="text-sm text-slate-600 mt-1">韩国 | 综合 | 多次被改编为影视剧和网络游戏，具有本土特色。</p>
+                        </div>
+                        <div class="legacy-item card bg-white p-4 rounded-lg shadow" data-category="translation">
+                            <h4 class="font-bold text-amber-700">卫利 (Arthur Waley) 译本 "Monkey"</h4>
+                            <p class="text-sm text-slate-600 mt-1">英语世界 | 翻译 | 早期经典节译本，对《西游记》在西方的传播影响巨大。</p>
+                        </div>
+                        <div class="legacy-item card bg-white p-4 rounded-lg shadow" data-category="translation">
+                            <h4 class="font-bold text-amber-700">余国藩 (Anthony C. Yu) 译本</h4>
+                            <p class="text-sm text-slate-600 mt-1">英语世界 | 翻译 | 首个完整英文译本，学术价值极高，是研究者的首选。</p>
+                        </div>
+                     </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="bg-stone-200 mt-12 py-4">
+            <div class="container mx-auto px-4 text-center text-slate-600 text-sm">
+                <p>&copy; 2025 《西游记》交互式研究报告. All Rights Reserved.</p>
+                <p class="mt-1">本应用旨在以可视化的方式呈现学术研究报告，仅供学习交流使用。</p>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+            let legacyChart = null;
+
+            const characterData = {
+                wukong: { name: '孙悟空 (Sun Wukong)', description: '又名“心猿”，核心主角。从顽劣石猴到“斗战胜佛”，其成长是修心炼性的过程。代表着不畏权威、追求自由的精神，同时也是人之“心”的化身，需要被引导和约束。' },
+                tangseng: { name: '唐僧 (Tang Sanzang)', description: '取经团队的领导者，历史原型为玄奘法师。他是“善”的化身，但有时显得迂腐软弱。他的存在是团队凝聚的核心，也是孙悟空等人修行的监督者和引导者。' },
+                bajie: { name: '猪八戒 (Zhu Bajie)', description: '曾是天庭的天蓬元帅，因犯错被贬下凡。他代表了世俗的欲望，如贪吃、好色、懒惰，是人性的一个侧面。在磨难中，他也逐渐克服了一些缺点。' },
+                shawujing: { name: '沙悟净 (Sha Wujing)', description: '曾是天庭的卷帘大将，因失手打破琉璃盏被贬。他忠诚、任劳任怨，是团队中最沉默的一员，扮演着调和者和后勤保障的角色。' },
+                guanyin: { name: '观音菩萨 (Guanyin)', description: '取经任务的直接策划者和管理者。她在整个旅途中为师徒四人提供了无数次帮助，是慈悲与智慧的象征，也是佛界权力的重要执行者。' },
+                buddha: { name: '如来佛祖 (The Buddha)', description: '佛界的最高领袖，法力无边。他设计了取经任务，并最终册封了师徒五人。他是终极秩序和佛法正统的代表。' },
+                jadeemperor: { name: '玉皇大帝 (Jade Emperor)', description: '道教神话体系中的天庭最高统治者。他对孙悟空的态度从招安到镇压，反映了天庭官僚体系的僵化和对挑战者的排斥。' },
+                laojun: { name: '太上老君 (Taishang Laojun)', description: '道教的始祖之一，地位尊崇。他既是炼丹的宗师，也拥有强大的法宝。在小说中，他与佛界的关系微妙，体现了道佛之间的复杂互动。' },
+                subhuti: { name: '菩提祖师 (Subhuti)', description: '孙悟空的启蒙恩师，一位佛道合一的神秘高人。他传授孙悟空七十二变和筋斗云，但又告诫他不得透露师门，其身份是小说中的一个谜。' },
+                'chang-e': { name: '嫦娥 (Chang\'e)', description: '月宫仙子，与猪八戒的过去有关。她的存在是猪八戒被贬下凡的直接原因，象征着他难以割舍的尘世欲望。' }
+            };
+            
+            const themeData = {
+                religion: {
+                    title: '宗教哲思：三教合一与修心炼性',
+                    content: '《西游记》并非单纯的扬佛抑道之作，而是展现了佛、道、儒三教思想融合的文化景观。小说以佛教的“取经”为故事主线，但孙悟空的法术、天庭的体系多源于道教。同时，唐僧对君王的忠诚、对徒弟的教诲又体现了儒家的伦理观念。整个取经过程，尤其是对“心猿”的降服，正是“明心见性”、“修心炼性”这一修行观的生动演绎，是三教共同追求的哲学目标。'
+                },
+                politics: {
+                    title: '政治讽喻：神魔世界的天庭官场',
+                    content: '小说对天庭官僚体系的描绘极具讽刺意味。玉皇大帝并非全知全能的圣君，更像一个无能且好面子的封建帝王。天庭的众神则如同人间官场的官僚，充斥着裙带关系、推诿扯皮和论资排辈。孙悟空大闹天宫，正是对这种僵化、腐朽的权力结构的有力冲击，使小说具有了深刻的“政治寓言”功能。'
+                },
+                growth: {
+                    title: '成长寓言：一场心灵的炼金术',
+                    content: '取经之旅不仅是地理上的跋涉，更是一场心灵的修炼。孙悟空从一个无法无天的“顽劣”石猴，在磨难中学会了责任与约束，最终成为“斗战胜佛”。唐僧克服了自身的怯懦与固执。猪八戒和沙悟净也在旅途中部分地战胜了自己的心魔。九九八十一难，象征着个体在社会化过程中必须经历的考验，最终完成人格的蜕变与升华。'
+                },
+                conflict: {
+                    title: '道佛之争：势力间的冲突与博弈',
+                    content: '小说中，道教与佛教两大势力的互动构成了重要的叙事张力。在车迟国，孙悟空与虎力、鹿力、羊力三位道士的斗法是道佛两派最直接的对抗。在许多劫难中，拥有道教背景的妖怪（如金角、银角大王）常常给取经团队带来巨大麻烦。然而，两派并非完全对立，天庭有时会求助于佛祖，佛道神仙也常有往来，反映了中国历史上道佛两教长期冲突、融合、博弈的复杂现实。'
+                }
+            };
+            
+            const symbolData = {
+                'mind-ape': {
+                    title: '“心猿”的驯服',
+                    content: `<p>孙悟空作为“心猿”是小说中最核心的象征。在佛教心学中，“心猿意马”比喻人心浮躁、易变难控。孙悟空的筋斗云、七十二变正代表了心的无限潜能和变化莫测。紧箍咒则是戒律和理性的象征，用于约束这颗不羁的“心”。</p><p class="mt-2">取经的过程，就是唐僧（代表“意”）驾驭孙悟空（代表“心”）的过程，最终达到“心意合一”的境界。这一过程也与道教内丹学中“炼神”、“降心”的修炼思想高度契合，体现了其从“顽劣”的自然之心到“斗战胜佛”的觉悟之心的内在转化逻辑。</p>`
+                },
+                'two-minds': {
+                    title: '“二心”的搏杀',
+                    content: `<p>“真假美猴王”是小说中最具深意的章节之一。两个悟空一模一样，无人能辨，这象征着孙悟空内心的巨大冲突，即“二心”的搏杀。这里的“二心”可以被解读为：本心与妄心、真心与假我、个人欲望与团队使命之间的斗争。</p><p class="mt-2">六耳猕猴的出现，是在唐僧多次误解驱逐孙悟空后，其内心怨念和恶念的具象化。最终，假悟空被真悟空打死在如来佛祖面前，象征着在最高智慧的点化下，主人公战胜了内心的阴暗面，完成了自我认同的整合，从而更坚定地走上修行之路。这一情节深刻探讨了自我认知、内心挣扎与团队信任等普世主题。</p>`
+                },
+                prototype: {
+                    title: '历史与神话原型',
+                    content: `<p>《西游记》的人物和情节并非凭空创造，而是有着深厚的历史与文化渊源。</p><ul class="list-disc list-inside mt-2 space-y-2"><li><strong>玄奘法师：</strong> 唐僧的历史原型是中国唐代真实存在的高僧玄奘，他曾历时17年，远赴天竺（古印度）取经，其旅程记录为《大唐西域记》。小说将其神化，但保留了其坚韧不拔的求法精神。</li><li><strong>神猴哈奴曼：</strong> 孙悟空的形象可能受到了印度史诗《罗摩衍那》中神猴哈奴曼的影响。哈奴曼同样神通广大、忠心耿耿、能飞天遁地。这种跨文化形象的借鉴与融合，体现了古代丝绸之路上文化的交流与传播。</li></ul>`
+                }
+            };
+            
+            function switchSection(sectionId) {
+                contentSections.forEach(section => {
+                    section.classList.toggle('active', section.id === sectionId);
+                });
+                navLinks.forEach(link => {
+                    link.classList.toggle('active', link.dataset.section === sectionId);
+                });
+
+                if (sectionId === 'section-legacy' && !legacyChart) {
+                    renderLegacyChart();
+                }
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    switchSection(link.dataset.section);
+                });
+            });
+            
+            const characterCards = document.querySelectorAll('.character-card');
+            const characterNameEl = document.getElementById('character-name');
+            const characterDescriptionEl = document.getElementById('character-description');
+
+            characterCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const id = card.dataset.id;
+                    const data = characterData[id];
+                    
+                    characterCards.forEach(c => c.classList.remove('highlight'));
+                    card.classList.add('highlight');
+
+                    characterNameEl.textContent = data.name;
+                    characterDescriptionEl.textContent = data.description;
+                    
+                    const relations = card.dataset.relations.split(',');
+                    characterCards.forEach(c => {
+                         if (relations.includes(c.dataset.id) || c.dataset.id === id) {
+                            c.classList.add('highlight');
+                         }
+                    });
+                });
+            });
+
+            const themeCards = document.querySelectorAll('.theme-card');
+            const themeTitleEl = document.getElementById('theme-title');
+            const themeContentEl = document.getElementById('theme-content');
+
+            themeCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const theme = card.dataset.theme;
+                    const data = themeData[theme];
+                    themeTitleEl.textContent = data.title;
+                    themeContentEl.textContent = data.content;
+                });
+            });
+
+            const symbolTabButtons = document.querySelectorAll('.symbol-tab-button');
+            const symbolTitleEl = document.getElementById('symbol-title');
+            const symbolContentEl = document.getElementById('symbol-content');
+
+            symbolTabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    symbolTabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    const symbol = button.dataset.symbol;
+                    const data = symbolData[symbol];
+                    symbolTitleEl.textContent = data.title;
+                    symbolContentEl.innerHTML = data.content;
+                });
+            });
+            
+            function renderLegacyChart() {
+                const ctx = document.getElementById('legacyChart').getContext('2d');
+                legacyChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['影视改编', '动漫游戏', '东亚传播', '全球翻译'],
+                        datasets: [{
+                            label: '影响广度指数',
+                            data: [90, 85, 95, 75],
+                            backgroundColor: [
+                                'rgba(217, 119, 6, 0.6)',
+                                'rgba(202, 138, 4, 0.6)',
+                                'rgba(180, 83, 9, 0.6)',
+                                'rgba(146, 64, 14, 0.6)'
+                            ],
+                            borderColor: [
+                                'rgb(217, 119, 6)',
+                                'rgb(202, 138, 4)',
+                                'rgb(180, 83, 9)',
+                                'rgb(146, 64, 14)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `影响广度: ${context.raw}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0,0,0,0.05)'
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        onClick: (event, elements) => {
+                            if (elements.length > 0) {
+                                const index = elements[0].index;
+                                const labels = ['film', 'games', 'east-asia', 'translation'];
+                                filterLegacyItems(labels[index]);
+                            }
+                        }
+                    }
+                });
+            }
+
+            const legacyItems = document.querySelectorAll('.legacy-item');
+            const legacyCategoryTitle = document.getElementById('legacy-category-title');
+            const categoryNames = {
+                film: '影视改编实例',
+                games: '动漫游戏实例',
+                'east-asia': '东亚传播实例',
+                translation: '全球翻译实例'
+            };
+
+            function filterLegacyItems(category) {
+                legacyCategoryTitle.textContent = categoryNames[category] || '部分改编实例';
+                legacyItems.forEach(item => {
+                    if (category === 'all' || item.dataset.category === category) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+            
+            symbolTabButtons[0].click();
+            switchSection('section-characters');
+        });
+    </script>
+</body>
+</html>
