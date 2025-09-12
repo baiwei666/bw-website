@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国军力战略评估报告（2025）</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral (Stone) with Red Accent -->
+    <!-- Application Structure Plan: The application is designed as a single-page interactive dashboard. Instead of a long, linear scroll that mirrors the report's chapters, I've opted for a thematic, tab-based navigation structure. This approach breaks down the dense information into four digestible, user-selectable sections: 1. "概览与战略" (Overview & Strategy) provides a high-level introduction. 2. "军种力量对比" (Force Comparison) forms the interactive core, using sub-tabs and charts to compare PLA branches against the US and Russia. 3. "新型作战领域" (New Domains) groups future-oriented capabilities like space, cyber, and military industry. 4. "联合作战与展望" (Joint Ops & Outlook) synthesizes the information, discussing integration and future trends. This non-linear structure allows users to directly access their area of interest, making the complex data more explorable and less overwhelming, thus prioritizing user experience and efficient information retrieval over rigid adherence to the source document's order. -->
+    <!-- Visualization & Content Choices: 
+        1. Report Info: Overall Military Strength (Budget, Personnel). Goal: Inform. Viz Method: Key metric cards (HTML/Tailwind). Interaction: Static display. Justification: Provides a quick, high-level snapshot. Library: N/A.
+        2. Report Info: Army, Navy, Air Force, Rocket Force equipment quantities vs. US/Russia. Goal: Compare. Viz Method: Dynamic horizontal bar charts. Interaction: Users click buttons to switch between services, triggering a JavaScript function to update the chart's data, labels, and title. Tooltips on hover show precise numbers. Justification: Bar charts are ideal for direct quantitative comparison. Dynamic updates keep the interface clean and focused. Library: Chart.js.
+        3. Report Info: Strategic Support Force composition (Space, Cyber, EW). Goal: Organize. Viz Method: A diagram built with styled HTML divs and a flexbox layout. Interaction: Clicking on a domain card reveals a detailed descriptive text block. Justification: A visual layout clarifies the structure of this complex force better than plain text. Library: N/A (JS for interaction).
+        4. Report Info: Joint Operations Command Structure. Goal: Explain a process/hierarchy. Viz Method: A flowchart created with nested HTML divs, borders, and connecting lines styled with Tailwind CSS. Interaction: Static visual aid. Justification: Simplifies the visualization of a complex command chain without external libraries. Library: N/A.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f5f5f4; /* stone-100 */
+        }
+        .nav-btn {
+            @apply px-4 py-2 text-sm font-medium text-stone-600 rounded-md transition-colors duration-200;
+        }
+        .nav-btn.active, .nav-btn:hover {
+            @apply bg-red-800 text-white;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
+        }
+        .force-btn {
+            @apply px-3 py-1.5 text-xs sm:text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all;
+        }
+        .force-btn.active {
+            @apply bg-red-700 text-white border-red-700;
+        }
+    </style>
+</head>
+<body class="text-stone-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-red-900">中国人民解放军军力战略评估报告</h1>
+            <p class="text-stone-600 mt-2 text-lg">截至 2025 年 9 月</p>
+        </header>
+
+        <nav class="flex flex-wrap justify-center gap-2 sm:gap-4 mb-8 bg-stone-200 p-2 rounded-lg shadow-sm">
+            <button class="nav-btn active" data-target="overview">概览与战略</button>
+            <button class="nav-btn" data-target="forces">军种力量对比</button>
+            <button class="nav-btn" data-target="new_domains">新型作战领域</button>
+            <button class="nav-btn" data-target="joint_ops">联合作战与展望</button>
+        </nav>
+
+        <main id="app-content">
+            
+            <section id="overview" class="content-section active">
+                <div class="bg-white p-6 rounded-lg shadow-md animate-fade-in">
+                    <h2 class="text-2xl font-bold text-red-800 mb-4">引言</h2>
+                    <p class="text-stone-700 leading-relaxed">本报告旨在全面评估截至2025年，特别是纪念抗战胜利80周年阅兵后，中国人民解放军的当前军力状况。报告通过分析解放军的战略思想、各军种现代化进程、技术创新及联合作战能力，深入探讨其在全球战略格局中的地位、优势与潜在挑战。中国军力的发展不仅是地区安全的关键变量，更是影响21世纪全球力量平衡的核心要素。</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 text-center">
+                        <div class="bg-stone-50 p-4 rounded-lg">
+                            <h3 class="text-lg font-semibold text-stone-600">现役总兵力</h3>
+                            <p class="text-3xl font-bold text-red-800 mt-1">约 200 万</p>
+                        </div>
+                        <div class="bg-stone-50 p-4 rounded-lg">
+                            <h3 class="text-lg font-semibold text-stone-600">2025年国防预算</h3>
+                            <p class="text-3xl font-bold text-red-800 mt-1">~ 1.7万亿 ¥</p>
+                        </div>
+                         <div class="bg-stone-50 p-4 rounded-lg">
+                            <h3 class="text-lg font-semibold text-stone-600">航母数量</h3>
+                            <p class="text-3xl font-bold text-red-800 mt-1">3 艘</p>
+                        </div>
+                    </div>
+
+                    <h2 class="text-2xl font-bold text-red-800 mb-4 mt-8">军事战略与学说</h2>
+                    <p class="text-stone-700 leading-relaxed mb-4">中国的军事战略核心是“积极防御”，但在新时代背景下，其内涵已极大扩展。解放军的作战学说强调打赢“信息化智能化局部战争”，核心是构建“网络信息体系”下的“体系破击战”能力。一切军力发展均围绕维护国家主权、安全和发展利益，并服务于实现中华民族伟大复兴的战略目标。这要求解放军具备更强的远域拒止、力量投送和全域作战能力。</p>
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <div class="flex-1 bg-stone-50 p-4 rounded-lg">
+                           <h3 class="font-bold text-red-900">核心思想：积极防御</h3>
+                           <p class="text-sm text-stone-600">战略上防御，战役战斗上进攻。强调“不打第一枪”，但坚持“后发制人”和有效反击。</p>
+                        </div>
+                         <div class="flex-1 bg-stone-50 p-4 rounded-lg">
+                           <h3 class="font-bold text-red-900">作战目标：信息化局部战争</h3>
+                           <p class="text-sm text-stone-600">聚焦于高科技、高强度、快节奏的局部冲突，强调信息主导、精确打击和联合作战。</p>
+                        </div>
+                         <div class="flex-1 bg-stone-50 p-4 rounded-lg">
+                           <h3 class="font-bold text-red-900">关键能力：体系对抗</h3>
+                           <p class="text-sm text-stone-600">将各军兵种、各类作战要素融合成一个有机整体，以整个作战体系的综合效能对抗敌人。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="forces" class="content-section">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-bold text-red-800 mb-2">主要军种力量对比</h2>
+                    <p class="text-stone-600 mb-6">本部分通过互动图表，直观对比中国、美国和俄罗斯在陆、海、空及火箭军四大军种的核心装备数量与实力。请点击下方按钮切换不同军种的对比数据。</p>
+                    
+                    <div class="flex flex-wrap justify-center gap-2 sm:gap-4 mb-6" id="force-selector">
+                        <button class="force-btn active" data-force="army">陆军</button>
+                        <button class="force-btn" data-force="navy">海军</button>
+                        <button class="force-btn" data-force="air_force">空军</button>
+                        <button class="force-btn" data-force="rocket_force">火箭军</button>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="forceComparisonChart"></canvas>
+                    </div>
+
+                    <div id="force-details" class="mt-8">
+                    </div>
+                </div>
+            </section>
+
+            <section id="new_domains" class="content-section">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-bold text-red-800 mb-4">战略支援部队与新型领域</h2>
+                    <p class="text-stone-700 leading-relaxed mb-6">战略支援部队是解放军在新兴作战领域的核心力量，整合了天、空、网、电等多种战略资源，为联合作战提供关键支撑。其发展与中国国防工业的技术创新紧密相连，共同构成了中国军力实现跨越式发展的基石。</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-xl font-semibold text-red-900 mb-3">战略支援部队 (PLASSF)</h3>
+                            <div class="space-y-4">
+                                <div class="bg-stone-50 p-4 rounded-lg cursor-pointer domain-card" data-domain="space">
+                                    <h4 class="font-bold">🚀 太空作战</h4>
+                                    <p class="text-sm text-stone-600">负责军用航天发射、卫星管理、空间态势感知及反卫星能力。</p>
+                                </div>
+                                <div class="bg-stone-50 p-4 rounded-lg cursor-pointer domain-card" data-domain="cyber">
+                                    <h4 class="font-bold">💻 网络战</h4>
+                                    <p class="text-sm text-stone-600">执行网络防御、网络侦察和必要的网络攻击任务。</p>
+                                 </div>
+                                <div class="bg-stone-50 p-4 rounded-lg cursor-pointer domain-card" data-domain="ew">
+                                    <h4 class="font-bold">📡 电子战</h4>
+                                    <p class="text-sm text-stone-600">负责电磁频谱作战，进行干扰、压制和电子防护。</p>
+                                 </div>
+                            </div>
+                        </div>
+                        <div id="domain-details-display" class="bg-stone-100 p-4 rounded-lg h-full min-h-[200px] flex items-center justify-center">
+                             <p class="text-stone-500 text-center">点击左侧领域查看详细信息</p>
+                        </div>
+                    </div>
+                     <h3 class="text-xl font-semibold text-red-900 mb-3 mt-8">军事工业与技术创新</h3>
+                    <p class="text-stone-700 leading-relaxed mb-4">在“军民融合”战略推动下，中国国防工业已形成高度自主的研发和生产体系。在人工智能、高超音速、量子通信、隐身材料和先进舰船动力等领域取得了重大突破，正在迅速缩小与西方的技术差距，并在某些领域实现“弯道超车”。</p>
+                     <ul class="list-disc list-inside space-y-2 text-stone-700">
+                        <li><span class="font-semibold">人工智能 (AI):</span> 广泛应用于情报分析、自主无人系统和指挥决策辅助。</li>
+                        <li><span class="font-semibold">高超音速技术:</span> DF-17等武器的服役使中国在该领域处于领先地位。</li>
+                        <li><span class="font-semibold">量子科技:</span> 在量子通信和量子雷达等颠覆性技术上投入巨大。</li>
+                        <li><span class="font-semibold">先进制造:</span> 3D打印、新材料等技术被用于新型装备的快速研发和生产。</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="joint_ops" class="content-section">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-bold text-red-800 mb-4">联合作战与战略展望</h2>
+                    <p class="text-stone-700 leading-relaxed mb-6">解放军的改革核心是从军种主导转向战区主导的联合作战。通过设立五大战区，强化了跨军种的指挥、协同和训练，旨在将各领域的力量整合成一个高效的作战体系。后勤保障能力，特别是战略投送和远海支援，正随着运-20机队和海外补给点（如吉布提基地）的建设而稳步提升。</p>
+
+                    <div class="p-4 border border-stone-200 rounded-lg">
+                         <h3 class="text-xl font-semibold text-red-900 mb-4 text-center">解放军联合作战指挥体系 (简化)</h3>
+                         <div class="text-center text-sm">
+                            <div class="bg-red-800 text-white font-bold p-2 rounded-md max-w-xs mx-auto">中央军事委员会 (CMC)</div>
+                            <div class="w-0.5 h-6 bg-stone-300 mx-auto"></div>
+                            <div class="flex justify-center">
+                                <div class="w-1/2 h-0.5 bg-stone-300"></div>
+                                <div class="w-1/2 h-0.5 bg-stone-300"></div>
+                            </div>
+                            <div class="flex justify-around">
+                                <div class="w-0.5 h-6 bg-stone-300"></div>
+                                <div class="w-0.5 h-6 bg-stone-300"></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-stone-200 p-2 rounded-md">军种领导机构 (建军)</div>
+                                <div class="bg-stone-200 p-2 rounded-md">五大战区 (用兵)</div>
+                            </div>
+                         </div>
+                    </div>
+                    
+                    <h2 class="text-2xl font-bold text-red-800 mb-4 mt-8">战略评估与未来趋势</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-xl font-semibold text-red-900 mb-3">优势 (Strengths)</h3>
+                            <ul class="list-disc list-inside space-y-2 text-stone-700">
+                                <li><strong>体系化发展：</strong>各军种发展均衡，体系对抗能力日益成型。</li>
+                                <li><strong>后发优势：</strong>能够借鉴吸收他国先进经验，装备起点高。</li>
+                                <li><strong>A2/AD能力：</strong>在第一岛链内拥有强大的区域拒止/反介入能力。</li>
+                                <li><strong>工业产能：</strong>强大的国防工业支持快速、大规模的装备更新。</li>
+                            </ul>
+                        </div>
+                        <div>
+                             <h3 class="text-xl font-semibold text-red-900 mb-3">挑战 (Challenges)</h3>
+                            <ul class="list-disc list-inside space-y-2 text-stone-700">
+                                <li><strong>实战经验：</strong>缺乏大规模、高强度现代化战争的实战经验。</li>
+                                <li><strong>联合作战熟练度：</strong>跨军种协同仍处于磨合和提升阶段。</li>
+                                <li><strong>远洋能力：</strong>全球力量投送和远海持续作战能力仍有不足。</li>
+                                <li><strong>高科技人才：</strong>操作和维护复杂系统的人才培养面临挑战。</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="mt-6 bg-stone-50 p-4 rounded-lg">
+                        <h3 class="text-xl font-semibold text-red-900 mb-3">未来5-10年趋势</h3>
+                        <p class="text-stone-700 leading-relaxed">预计中国将继续以每年6-7%的速度增加国防开支。海军将建成4-5个航母战斗群，空军歼-20数量将大幅增加并可能公开新一代战略轰炸机。核武库将进一步现代化和多样化，以确保可靠的核威慑。解放军将更加注重智能化、无人化作战能力的建设，并深化联合作战演训，力求在2035年前基本实现国防和军队现代化。</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const navButtons = document.querySelectorAll('.nav-btn');
+            const contentSections = document.querySelectorAll('.content-section');
+            const forceSelectorButtons = document.querySelectorAll('.force-btn');
+            const domainCards = document.querySelectorAll('.domain-card');
+
+            const forceData = {
+                army: {
+                    title: '主战坦克数量对比',
+                    labels: ['中国 (99A/96B)', '美国 (M1A2)', '俄罗斯 (T-90/T-14)'],
+                    data: [4500, 6100, 12500],
+                    details: `
+                        <h3 class="text-xl font-semibold text-red-900 mb-3">陆军现代化与地面作战能力</h3>
+                        <p class="text-stone-700 leading-relaxed">中国陆军已基本完成“师改旅”改革，形成了以重、中、轻型合成旅为核心的模块化作战力量。99A/B型主战坦克在火力、机动和防护上达到世界一流水平，100式主战坦克和支援车作为新一代装备已在阅兵中亮相，信息化和网络化能力大幅提升。PCL-181车载加榴炮和远程火箭炮提供了强大的火力支援能力。相较于美俄，解放军陆军在规模和部分火炮技术上有优势，但在实战经验和全球部署能力上仍有差距。</p>
+                    `
+                },
+                navy: {
+                    title: '主力水面舰艇数量对比 (航母/驱逐舰)',
+                    labels: ['中国 (3/50)', '美国 (11/92)', '俄罗斯 (1/12)'],
+                    data: [53, 103, 13],
+                    details: `
+                        <h3 class="text-xl font-semibold text-red-900 mb-3">海军力量发展与海上投送能力</h3>
+                        <p class="text-stone-700 leading-relaxed">中国海军正以前所未有的速度扩张，被誉为“下饺子”。福建舰的服役标志着中国进入电磁弹射航母时代。055型万吨级驱逐舰在设计和武备上达到世界顶尖水平。075型两栖攻击舰极大增强了立体登陆和远海兵力投送能力。潜艇部队，特别是静音性能提升的常规潜艇和新一代核潜艇，构成了可靠的水下威慑。中国海军在近海防御和A2/AD能力上已具相当实力，但与美国海军的全球作战经验和航母编队熟练度相比仍需时日发展。</p>
+                    `
+                },
+                air_force: {
+                    title: '现代化战斗机数量对比 (四代+/五代)',
+                    labels: ['中国 (J-10/11/16/20)', '美国 (F-15/16/18/22/35)', '俄罗斯 (Su-30/35/57)'],
+                    data: [1500, 2800, 1100],
+                    details: `
+                         <h3 class="text-xl font-semibold text-red-900 mb-3">空军现代化与空中作战能力</h3>
+                        <p class="text-stone-700 leading-relaxed">中国空军已从国土防空型向“空天一体、攻防兼备”转型。歼-20隐形战斗机的大规模列装使其成为全球第二大五代机用户。轰-6K/N轰炸机挂载远程巡航导弹，具备战略打击能力，备受期待的轰-20可能已在研发最后阶段。运-20大型运输机和系列预警机构建了战略空运和空中预警体系。中国空军在综合防空反导和无人机技术上表现突出，但在战略轰炸机和大型特种飞机平台方面与美俄相比仍有差距。</p>
+                    `
+                },
+                rocket_force: {
+                    title: '各类弹道导弹估算数量',
+                    labels: ['中国', '美国', '俄罗斯'],
+                    data: [2000, 1550, 1674],
+                    details: `
+                        <h3 class="text-xl font-semibold text-red-900 mb-3">火箭军常规与核打击能力</h3>
+                        <p class="text-stone-700 leading-relaxed">中国火箭军是独一无二的军种，掌握着中国的陆基核力量和大量先进的常规弹道导弹。DF-21D和DF-26反舰弹道导弹是其A2/AD战略的关键，被称为“航母杀手”。DF-17高超音速导弹则能突破现有反导系统。核力量方面，以东风-41、东风-31AG洲际导弹和巨浪系列潜射导弹为核心，构成了可信的“三位一体”核威慑。火箭军的常规精确打击能力在全球范围内首屈一指，但在核弹头数量和战略预警体系上与美俄相比仍有较大差距。</p>
+                    `
+                }
+            };
+
+            const domainDetails = {
+                space: {
+                    title: "🚀 太空作战能力",
+                    text: "中国的太空能力发展迅速。北斗全球卫星导航系统已全面运行，为军队提供独立于GPS的精确定位、导航和授时服务。遥感和通信卫星网络日益完善，极大提升了战场态势感知和指挥通信能力。同时，中国已展示了包括动能拦截在内的多种反卫星（ASAT）技术，具备摧毁低轨道卫星的能力，这是其太空威慑和对抗能力的重要组成部分。"
+                },
+                cyber: {
+                    title: "💻 网络战能力",
+                    text: "战略支援部队网络系统部被认为是解放军网络战的核心力量。其任务涵盖了网络防御、渗透、情报收集和在必要时发动网络攻击。中国被认为是全球网络空间中最活跃和能力最强的行为体之一。其网络战能力旨在瘫痪敌方指挥控制系统、关键基础设施，并在冲突初期夺取信息优势，是现代“体系破击战”的关键一环。"
+                },
+                ew: {
+                    title: "📡 电子战能力",
+                    text: "解放军高度重视电子战，将其视为信息化战争的“撒手锏”。通过部署在陆、海、空、天平台的各种电子战设备，解放军寻求在战时压制敌方的雷达、通信和导航系统。歼-16D等专用电子战飞机的服役，显著增强了其随队干扰和防区外压制能力。电子战的目标是“致盲、致聋”敌人，为己方各类打击行动创造有利条件。"
+                }
+            };
+            
+            let currentChart = null;
+
+            function updateForceChart(force) {
+                const data = forceData[force];
+                if (!data) return;
+
+                document.getElementById('force-details').innerHTML = data.details;
+
+                const ctx = document.getElementById('forceComparisonChart').getContext('2d');
+                if (currentChart) {
+                    currentChart.destroy();
+                }
+                currentChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: data.title,
+                            data: data.data,
+                            backgroundColor: ['rgba(185, 28, 28, 0.7)', 'rgba(37, 99, 235, 0.7)', 'rgba(107, 114, 128, 0.7)'],
+                            borderColor: ['#b91c1c', '#2563eb', '#6b7280'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: data.title,
+                                font: {
+                                    size: 18,
+                                    weight: 'bold'
+                                },
+                                color: '#44403c' // stone-700
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.raw}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: '#e7e5e4' // stone-200
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetId = button.dataset.target;
+                    
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    contentSections.forEach(section => {
+                        section.classList.remove('active');
+                        if (section.id === targetId) {
+                            section.classList.add('active');
+                        }
+                    });
+                     if (targetId === 'forces') {
+                        updateForceChart('army');
+                    }
+                });
+            });
+
+            forceSelectorButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    forceSelectorButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    const force = button.dataset.force;
+                    updateForceChart(force);
+                });
+            });
+
+            domainCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const domainKey = card.dataset.domain;
+                    const details = domainDetails[domainKey];
+                    const display = document.getElementById('domain-details-display');
+                    
+                    if(details) {
+                        display.innerHTML = `
+                            <div class="p-2 animate-fade-in">
+                                <h4 class="text-lg font-bold text-red-800 mb-2">${details.title}</h4>
+                                <p class="text-stone-700 text-sm leading-relaxed">${details.text}</p>
+                            </div>
+                        `;
+                    }
+                });
+            });
+
+            updateForceChart('army');
+        });
+    </script>
+</body>
+</html>
