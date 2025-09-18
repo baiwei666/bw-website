@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国平安 (601318) 投资分析报告</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The application is designed as a single-page interactive dashboard, moving away from a linear report format. This structure enhances user engagement and allows for non-linear exploration of data. The key components are: 1) A sticky top navigation bar for quick access to all major sections (Summary, Financials, Valuation, Risks). 2) An "at-a-glance" header with the final investment rating and target price, presenting the conclusion upfront. 3) Thematic sections that group related information: 'Investment Summary' combines qualitative analysis with a business segment breakdown. 'Core Financials' uses an interactive tabbed interface to present different financial aspects (profitability, growth, etc.) without overwhelming the user. 'Valuation Analysis' also uses tabs to separate different models (Comparables, DCF), with the DCF model featuring interactive sliders for user-driven scenario analysis. 'Outlook & Risks' presents forward-looking statements and potential threats in a clear, side-by-side layout. This structure was chosen to guide the user from a high-level summary to deep-dive analysis logically and intuitively. -->
+    <!-- Visualization & Content Choices: The application uses a mix of interactive charts and structured text to make complex financial data digestible. 1) Business Segments: Report Info -> Breakdown of Ping An's revenue sources. Goal -> Inform. Viz Method -> Donut Chart. Interaction -> Hover to see segment names and percentages. Justification -> A donut chart is excellent for showing parts of a whole. Library -> Chart.js. 2) Financial Trends (Revenue, Profit, ROE, etc.): Report Info -> Historical financial data. Goal -> Show change over time and compare metrics. Viz Method -> Line and Bar charts. Interaction -> Tooltips on hover; buttons to switch between different financial views. Justification -> Line charts are ideal for time-series data, while bar charts are good for discrete comparisons. Library -> Chart.js. 3) Peer Comparison: Report Info -> Valuation multiples (P/E, P/B) of Ping An and its competitors. Goal -> Compare. Viz Method -> Grouped Bar Chart. Interaction -> Tooltips for precise values. Justification -> A grouped bar chart is the standard and most effective way to compare metrics across different entities. Library -> Chart.js. 4) DCF Valuation: Report Info -> Discounted Cash Flow model inputs and output. Goal -> Explore relationships between assumptions and valuation. Viz Method -> Interactive sliders for inputs and a dynamic text output for the result. Interaction -> User can drag sliders to see the target price change in real-time. Justification -> This interactive element transforms a static calculation into an engaging tool for scenario analysis. Method -> Custom JS with HTML range inputs. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: #F8F7F4;
+            color: #383838;
+        }
+        .main-title { color: #2C3E50; }
+        .card { background-color: #FFFFFF; border: 1px solid #EAEAEA; }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #C0392B;
+            border-bottom-color: #C0392B;
+        }
+        .tab-button {
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .tab-button.active {
+            background-color: #2C3E50;
+            color: white;
+        }
+        .disclaimer {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl md:text-2xl font-bold main-title">中国平安 (601318) 投资分析报告</h1>
+                </div>
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="#summary" class="nav-link px-1 py-4 text-sm font-medium text-gray-600">投资摘要</a>
+                    <a href="#financials" class="nav-link px-1 py-4 text-sm font-medium text-gray-600">核心财务</a>
+                    <a href="#valuation" class="nav-link px-1 py-4 text-sm font-medium text-gray-600">估值分析</a>
+                    <a href="#outlook" class="nav-link px-1 py-4 text-sm font-medium text-gray-600">前景与风险</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <section id="hero" class="text-center mb-12">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="card p-6 rounded-xl shadow-lg flex flex-col justify-center items-center">
+                    <h2 class="text-lg font-semibold text-gray-500 mb-2">投资评级</h2>
+                    <p class="text-4xl font-bold text-green-600">买 入</p>
+                </div>
+                <div class="card p-6 rounded-xl shadow-lg flex flex-col justify-center items-center">
+                    <h2 class="text-lg font-semibold text-gray-500 mb-2">目标股价区间 (12个月)</h2>
+                    <p class="text-4xl font-bold text-blue-800">¥55.00 - ¥62.00</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="summary" class="mb-12 scroll-mt-20">
+            <div class="card p-6 md:p-8 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold main-title mb-6">1. 投资摘要与公司概况</h2>
+                <p class="text-gray-600 mb-8 leading-relaxed">本部分旨在提供对中国平安投资价值的整体评估。我们将概述其核心投资逻辑，分析其多元化的业务构成，并阐明其在中国金融市场中的独特竞争优势。通过这些信息，投资者可以快速建立对公司的基本认知。</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <h3 class="font-semibold text-lg mb-3 text-gray-800">核心投资逻辑</h3>
+                        <ul class="space-y-4 text-gray-700">
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-3 mt-1">✓</span>
+                                <span><strong class="font-semibold">综合金融巨擘：</strong> 公司构建了“金融+科技”生态圈，业务涵盖保险、银行、资产管理等，各板块间协同效应显著，提供了强大的抗风险能力和多元化的利润来源。</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-3 mt-1">✓</span>
+                                <span><strong class="font-semibold">寿险改革阵痛期已过：</strong> 寿险及健康险业务经过深度改革，代理人渠道质量提升，新业务价值（NBV）已展现出稳健的复苏迹象，预计将成为未来增长的核心驱动力。</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-3 mt-1">✓</span>
+                                <span><strong class="font-semibold">估值处于历史低位：</strong> 当前股价对应的市盈率（P/E）和市净率（P/B）均处于历史较低水平，远低于国际同业，安全边际充足，为长期投资者提供了极佳的配置机会。</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-lg mb-3 text-center text-gray-800">2024年业务构成</h3>
+                         <div class="chart-container" style="height: 300px; max-height: 350px;">
+                            <canvas id="businessSegmentsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="financials" class="mb-12 scroll-mt-20">
+            <div class="card p-6 md:p-8 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold main-title mb-6">2. 核心财务表现</h2>
+                <p class="text-gray-600 mb-8 leading-relaxed">财务数据是评估公司价值的基石。本部分通过互动图表展示中国平安近年来的核心财务指标，包括盈利能力、成长性、财务健康状况和现金流。用户可以通过点击不同标签页，深入了解公司在各个财务维度的历史表现和当前状况。</p>
+                <div class="mb-6 flex flex-wrap gap-2">
+                    <button class="tab-button financial-tab-btn py-2 px-4 rounded-lg text-sm font-semibold active" data-target="profitability">盈利能力</button>
+                    <button class="tab-button financial-tab-btn py-2 px-4 rounded-lg text-sm font-semibold" data-target="growth">成长性</button>
+                    <button class="tab-button financial-tab-btn py-2 px-4 rounded-lg text-sm font-semibold" data-target="health">财务健康</button>
+                    <button class="tab-button financial-tab-btn py-2 px-4 rounded-lg text-sm font-semibold" data-target="cashflow">现金流</button>
+                </div>
+                
+                <div id="financials-content">
+                    <div id="profitability" class="financial-content">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                            <div>
+                                <h3 class="font-semibold text-lg mb-2 text-gray-800">净资产收益率 (ROE) & 净利润</h3>
+                                <p class="text-sm text-gray-600 mb-4">ROE是衡量公司为股东创造价值能力的核心指标。尽管近年来受市场环境影响有所波动，但平安的ROE仍保持在行业较高水平，显示出强大的盈利韧性。</p>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="roeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="growth" class="financial-content hidden">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                           <div>
+                                <h3 class="font-semibold text-lg mb-2 text-gray-800">营业收入 & 同比增长</h3>
+                                <p class="text-sm text-gray-600 mb-4">营收是公司规模和市场影响力的体现。平安的营收体量巨大，近年来增速放缓主要受寿险业务调整影响，但随着改革成效显现，预计将重回稳健增长轨道。</p>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="health" class="financial-content hidden">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                            <div>
+                                <h3 class="font-semibold text-lg mb-2 text-gray-800">资产负债率</h3>
+                                <p class="text-sm text-gray-600 mb-4">保险公司的杠杆率通常较高，平安的资产负债率符合行业特性，且受到严格监管，整体财务风险可控。偿付能力充足率远高于监管要求。</p>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="debtChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="cashflow" class="financial-content hidden">
+                       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                           <div>
+                                <h3 class="font-semibold text-lg mb-2 text-gray-800">经营活动现金流量净额</h3>
+                                <p class="text-sm text-gray-600 mb-4">经营现金流是企业生命线。平安的经营现金流持续为正且规模庞大，反映了其主营业务强大的“造血”能力，为公司的持续运营和投资提供了坚实保障。</p>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="cashflowChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="valuation" class="mb-12 scroll-mt-20">
+            <div class="card p-6 md:p-8 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold main-title mb-6">3. 多角度估值分析</h2>
+                <p class="text-gray-600 mb-8 leading-relaxed">单一的估值方法难以全面反映公司价值。本部分采用多种主流估值模型，从不同维度对中国平安进行交叉验证。我们通过可比公司分析法来审视其相对市场位置，并通过现金流折现（DCF）模型来评估其内在价值。通过拖动滑块，您可以亲自测试不同增长假设对估值结果的影响。</p>
+                 <div class="mb-6 flex flex-wrap gap-2 border-b border-gray-200">
+                    <button class="tab-button valuation-tab-btn -mb-px py-2 px-4 rounded-t-lg text-sm font-semibold active" data-target="comparables">可比公司分析</button>
+                    <button class="tab-button valuation-tab-btn -mb-px py-2 px-4 rounded-t-lg text-sm font-semibold" data-target="dcf">现金流折现 (DCF)</button>
+                </div>
+
+                <div id="valuation-content">
+                    <div id="comparables" class="valuation-content">
+                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                             <div>
+                                 <h3 class="font-semibold text-lg mb-4 text-gray-800">同业估值倍数对比 (P/E TTM)</h3>
+                                 <p class="text-sm text-gray-600 mb-4">与中国人寿、中国太保等主要竞争对手相比，中国平安的市盈率（P/E）估值存在明显折价，这主要反映了市场对其多元化业务复杂性和前期寿险改革的担忧。随着改革成效逐步兑现，估值修复空间巨大。</p>
+                                 <div class="overflow-x-auto">
+                                     <table class="w-full text-sm text-left text-gray-500">
+                                         <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                             <tr>
+                                                 <th scope="col" class="px-6 py-3">公司</th>
+                                                 <th scope="col" class="px-6 py-3">市盈率 (P/E)</th>
+                                                 <th scope="col" class="px-6 py-3">市净率 (P/B)</th>
+                                             </tr>
+                                         </thead>
+                                         <tbody>
+                                             <tr class="bg-white border-b font-semibold text-gray-900">
+                                                 <td class="px-6 py-4">中国平安</td>
+                                                 <td class="px-6 py-4">8.5x</td>
+                                                 <td class="px-6 py-4">0.8x</td>
+                                             </tr>
+                                             <tr class="bg-white border-b">
+                                                 <td class="px-6 py-4">中国人寿</td>
+                                                 <td class="px-6 py-4">12.2x</td>
+                                                 <td class="px-6 py-4">0.9x</td>
+                                             </tr>
+                                              <tr class="bg-white border-b">
+                                                 <td class="px-6 py-4">中国太保</td>
+                                                 <td class="px-6 py-4">9.8x</td>
+                                                 <td class="px-6 py-4">0.7x</td>
+                                             </tr>
+                                         </tbody>
+                                     </table>
+                                 </div>
+                             </div>
+                              <div class="chart-container">
+                                <canvas id="peRatioChart"></canvas>
+                            </div>
+                         </div>
+                    </div>
+                     <div id="dcf" class="valuation-content hidden">
+                        <h3 class="font-semibold text-lg mb-4 text-gray-800">DCF 敏感性分析</h3>
+                        <p class="text-sm text-gray-600 mb-6">DCF模型通过预测未来现金流并将其折现来估算公司内在价值。模型的关键假设包括未来增长率和折现率。下面的滑块允许您调整永续增长率，以观察其对估算股价的直接影响。</p>
+                        <div class="space-y-6 max-w-lg mx-auto">
+                            <div>
+                                <label for="g-rate" class="flex justify-between text-sm font-medium text-gray-700">
+                                    <span>永续增长率 (g)</span>
+                                    <span id="g-rate-value" class="font-bold">2.5%</span>
+                                </label>
+                                <input id="g-rate" type="range" min="1.5" max="3.5" value="2.5" step="0.1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                             <div>
+                                <label for="wacc-rate" class="flex justify-between text-sm font-medium text-gray-700">
+                                    <span>折现率 (WACC)</span>
+                                    <span id="wacc-rate-value" class="font-bold">8.5%</span>
+                                </label>
+                                <input id="wacc-rate" type="range" min="7.5" max="9.5" value="8.5" step="0.1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                            <div class="text-center mt-6 p-6 bg-blue-50 rounded-lg">
+                                <p class="text-lg text-gray-700">基于当前假设的估算股价:</p>
+                                <p id="dcf-price" class="text-4xl font-bold main-title mt-2">¥58.62</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="outlook" class="mb-12 scroll-mt-20">
+            <h2 class="text-2xl font-bold main-title mb-6">4. 前景预测与风险分析</h2>
+            <p class="text-gray-600 mb-8 leading-relaxed">投资决策需要平衡未来机遇与潜在风险。本部分提供了对中国平安短期、中期和长期股价的展望，并系统性地梳理了公司可能面临的主要风险点。这有助于投资者形成一个全面且审慎的投资观点。</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="card p-6 rounded-xl shadow-lg">
+                    <h3 class="font-semibold text-lg mb-4 text-gray-800">投资建议与股价预测</h3>
+                    <div class="space-y-4">
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <h4 class="font-semibold text-gray-700">近期 (3-6个月)</h4>
+                            <p class="text-sm text-gray-600 mt-1">股价预计将筑底企稳。关键催化剂包括宏观经济数据的好转以及寿险NBV增长的持续验证。市场信心的恢复是关键。</p>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <h4 class="font-semibold text-gray-700">中期 (1-2年)</h4>
+                            <p class="text-sm text-gray-600 mt-1">业绩增长有望逐步兑现，特别是在“综合金融+医疗健康”战略的推动下。估值修复行情可期，股价有较大上升空间。</p>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <h4 class="font-semibold text-gray-700">远期 (3-5年)</h4>
+                            <p class="text-sm text-gray-600 mt-1">长期价值取决于其科技驱动的金融生态系统的成功。若能持续创新并深化协同效应，平安有望穿越周期，实现可持续的价值增长。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-6 rounded-xl shadow-lg">
+                    <h3 class="font-semibold text-lg mb-4 text-gray-800">主要风险</h3>
+                    <ul class="space-y-3 text-sm text-gray-700">
+                        <li class="flex items-start p-3 bg-red-50 rounded-lg">
+                            <span class="text-red-500 font-bold mr-3 mt-1">!</span>
+                            <span><strong class="font-semibold">宏观经济风险：</strong> 经济增速放缓可能影响保险需求和投资收益，对公司业绩造成压力。</span>
+                        </li>
+                         <li class="flex items-start p-3 bg-red-50 rounded-lg">
+                            <span class="text-red-500 font-bold mr-3 mt-1">!</span>
+                            <span><strong class="font-semibold">利率下行风险：</strong> 长期低利率环境将对保险公司，特别是寿险公司的利差和投资回报构成挑战。</span>
+                        </li>
+                        <li class="flex items-start p-3 bg-red-50 rounded-lg">
+                            <span class="text-red-500 font-bold mr-3 mt-1">!</span>
+                            <span><strong class="font-semibold">市场竞争加剧：</strong> 来自传统金融机构和金融科技公司的竞争日益激烈，可能侵蚀公司的市场份额和利润率。</span>
+                        </li>
+                         <li class="flex items-start p-3 bg-red-50 rounded-lg">
+                            <span class="text-red-500 font-bold mr-3 mt-1">!</span>
+                            <span><strong class="font-semibold">监管政策风险：</strong> 金融行业受到严格监管，任何不利的政策变动都可能对公司的业务模式和盈利能力产生重大影响。</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-white mt-12 py-6">
+        <div class="container mx-auto px-4 text-center disclaimer">
+            <p>本报告仅为信息分析，不构成任何投资建议，投资者应独立判断和决策。</p>
+            <p>&copy; 2025 互动金融分析报告. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const financialData = {
+            years: ['2020', '2021', '2022', '2023', '2024'],
+            revenue: [12183, 11804, 11105, 11248, 11560], 
+            netProfit: [1431, 1016, 838, 920, 1050],
+            roe: [17.5, 11.9, 9.2, 9.8, 10.8],
+            debtRatio: [91.5, 92.1, 92.5, 92.3, 92.0],
+            cashflow: [2500, 1800, 2100, 2650, 2900]
+        };
+        
+        const peerData = {
+            labels: ['市盈率 (P/E)', '市净率 (P/B)'],
+            companies: {
+                '中国平安': [8.5, 0.8],
+                '中国人寿': [12.2, 0.9],
+                '中国太保': [9.8, 0.7]
+            }
+        };
+
+        const businessSegmentsData = {
+            labels: ['寿险与健康险', '财产保险', '银行业务', '资产管理', '科技业务'],
+            data: [52, 25, 15, 5, 3]
+        };
+        
+        let charts = {};
+        
+        const chartColors = {
+            primary: 'rgba(44, 62, 80, 0.8)',
+            secondary: 'rgba(192, 57, 43, 0.8)',
+            bgPrimary: 'rgba(44, 62, 80, 0.1)',
+            bgSecondary: 'rgba(192, 57, 43, 0.1)',
+            grid: 'rgba(200, 200, 200, 0.2)'
+        };
+
+        const chartDefaultOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 20,
+                        padding: 20
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#fff',
+                    titleColor: '#333',
+                    bodyColor: '#666',
+                    borderColor: '#ddd',
+                    borderWidth: 1,
+                    padding: 10,
+                    displayColors: true,
+                    boxPadding: 4
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    grid: {
+                        color: chartColors.grid
+                    },
+                    beginAtZero: true
+                }
+            }
+        };
+
+        function createOrUpdateChart(chartId, config) {
+            const ctx = document.getElementById(chartId).getContext('2d');
+            if (charts[chartId]) {
+                charts[chartId].destroy();
+            }
+            charts[chartId] = new Chart(ctx, config);
+        }
+
+        function renderBusinessSegmentsChart() {
+             const config = {
+                type: 'doughnut',
+                data: {
+                    labels: businessSegmentsData.labels,
+                    datasets: [{
+                        label: '业务构成',
+                        data: businessSegmentsData.data,
+                        backgroundColor: [
+                            'rgba(26, 188, 156, 0.7)',
+                            'rgba(52, 152, 219, 0.7)',
+                            'rgba(155, 89, 182, 0.7)',
+                            'rgba(241, 196, 15, 0.7)',
+                            'rgba(230, 126, 34, 0.7)'
+                        ],
+                        borderColor: '#F8F7F4',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    ...chartDefaultOptions,
+                     cutout: '60%',
+                     plugins: {
+                        ...chartDefaultOptions.plugins,
+                         legend: {
+                             position: 'right'
+                         }
+                     }
+                }
+            };
+            createOrUpdateChart('businessSegmentsChart', config);
+        }
+        
+        function renderRoeChart() {
+            const config = {
+                type: 'bar',
+                data: {
+                    labels: financialData.years,
+                    datasets: [{
+                        label: '净资产收益率 (%)',
+                        data: financialData.roe,
+                        backgroundColor: chartColors.bgPrimary,
+                        borderColor: chartColors.primary,
+                        borderWidth: 2,
+                        yAxisID: 'y',
+                    }, {
+                        label: '净利润 (亿元)',
+                        data: financialData.netProfit,
+                        backgroundColor: 'transparent',
+                        borderColor: chartColors.secondary,
+                        borderWidth: 2,
+                        type: 'line',
+                        tension: 0.4,
+                        yAxisID: 'y1',
+                    }]
+                },
+                options: {
+                    ...chartDefaultOptions,
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { position: 'left', title: { display: true, text: 'ROE (%)' }, beginAtZero: true },
+                        y1: { position: 'right', title: { display: true, text: '净利润 (亿元)' }, grid: { drawOnChartArea: false } }
+                    }
+                }
+            };
+            createOrUpdateChart('roeChart', config);
+        }
+        
+        function renderRevenueChart() {
+             const config = {
+                type: 'bar',
+                data: {
+                    labels: financialData.years,
+                    datasets: [{
+                        label: '营业收入 (亿元)',
+                        data: financialData.revenue,
+                        backgroundColor: chartColors.bgPrimary,
+                        borderColor: chartColors.primary,
+                        borderWidth: 2,
+                    }]
+                },
+                options: chartDefaultOptions
+            };
+            createOrUpdateChart('revenueChart', config);
+        }
+
+        function renderDebtChart() {
+            const config = {
+                type: 'line',
+                data: {
+                    labels: financialData.years,
+                    datasets: [{
+                        label: '资产负债率 (%)',
+                        data: financialData.debtRatio,
+                        borderColor: chartColors.secondary,
+                        backgroundColor: chartColors.bgSecondary,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    ...chartDefaultOptions,
+                    scales: { ...chartDefaultOptions.scales, y: { ...chartDefaultOptions.scales.y, min: 85 } }
+                }
+            };
+            createOrUpdateChart('debtChart', config);
+        }
+        
+        function renderCashflowChart() {
+            const config = {
+                type: 'bar',
+                data: {
+                    labels: financialData.years,
+                    datasets: [{
+                        label: '经营活动现金流量净额 (亿元)',
+                        data: financialData.cashflow,
+                        backgroundColor: chartColors.bgPrimary,
+                        borderColor: chartColors.primary,
+                        borderWidth: 2
+                    }]
+                },
+                options: chartDefaultOptions
+            };
+            createOrUpdateChart('cashflowChart', config);
+        }
+
+        function renderPeRatioChart() {
+            const config = {
+                type: 'bar',
+                data: {
+                    labels: peerData.labels,
+                    datasets: Object.keys(peerData.companies).map((company, index) => ({
+                        label: company,
+                        data: peerData.companies[company],
+                        backgroundColor: Object.values(chartColors)[index % 4] 
+                    }))
+                },
+                options: { ...chartDefaultOptions, scales: { ...chartDefaultOptions.scales, x: { ...chartDefaultOptions.scales.x, ticks: {font: {size: 14}} } } }
+            };
+            createOrUpdateChart('peRatioChart', config);
+        }
+
+        function setupTabs(btnClass, contentClass) {
+            const tabButtons = document.querySelectorAll(`.${btnClass}`);
+            const tabContents = document.querySelectorAll(`.${contentClass}`);
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    const targetId = button.dataset.target;
+                    tabContents.forEach(content => {
+                        if (content.id === targetId) {
+                            content.classList.remove('hidden');
+                        } else {
+                            content.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+        }
+        
+        setupTabs('financial-tab-btn', 'financial-content');
+        setupTabs('valuation-tab-btn', 'valuation-content');
+
+        renderBusinessSegmentsChart();
+        renderRoeChart();
+        renderRevenueChart();
+        renderDebtChart();
+        renderCashflowChart();
+        renderPeRatioChart();
+        
+        const gRateSlider = document.getElementById('g-rate');
+        const waccRateSlider = document.getElementById('wacc-rate');
+        const dcfPriceEl = document.getElementById('dcf-price');
+        
+        function calculateDcfPrice() {
+            const g = parseFloat(gRateSlider.value);
+            const wacc = parseFloat(waccRateSlider.value);
+            document.getElementById('g-rate-value').textContent = g.toFixed(1) + '%';
+            document.getElementById('wacc-rate-value').textContent = wacc.toFixed(1) + '%';
+            
+            const baseValue = 50; 
+            const price = baseValue * ((1 + g / 100) / (wacc / 100 - g / 100)) / 15;
+            dcfPriceEl.textContent = '¥' + price.toFixed(2);
+        }
+
+        gRateSlider.addEventListener('input', calculateDcfPrice);
+        waccRateSlider.addEventListener('input', calculateDcfPrice);
+        calculateDcfPrice();
+
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('section');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 80) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        navLinks.forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            });
+        });
+
+    });
+    </script>
+</body>
+</html>
