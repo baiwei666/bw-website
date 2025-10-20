@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前瞻报告：2100年中国军事装备体系</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Cool Future -->
+    <!-- Application Structure Plan: The application is designed as a single-page, tabbed interface for seamless exploration. The structure includes: 1) Overview for a high-level summary. 2) Core Technologies presented in a card layout for quick visual scanning. 3) Force Scale with interactive donut and bar charts for intuitive data comparison. 4) Parameter Evolution featuring a dynamic line chart with filters, allowing users to actively explore performance trends. 5) Tech Roadmaps using an interactive timeline to visualize progression. This non-linear, thematic structure was chosen over a linear report format to empower users to directly access information of interest, enhancing engagement and comprehension of the complex futuristic data. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Core Tech Breakthroughs -> Goal: Organize/Inform -> Viz: Interactive Cards (HTML/CSS) -> Interaction: Hover effects. -> Justification: More engaging and readable than a list.
+        - Report Info: Force Scale Ratios -> Goal: Compare Proportions -> Viz: Donut/Bar Charts (Chart.js/Canvas) -> Interaction: Tooltips with precise data. -> Justification: Instantly conveys quantitative composition.
+        - Report Info: Parameter Evolution (2023-2100) -> Goal: Show Trends Over Time -> Viz: Filterable Line Chart (Chart.js/Canvas) -> Interaction: User selects parameter to visualize. -> Justification: Makes trend analysis interactive and user-driven.
+        - Report Info: Tech Development Paths -> Goal: Visualize Progression -> Viz: Interactive Timeline Diagram (HTML/CSS/JS) -> Interaction: Clickable stages to reveal details. -> Justification: Intuitively maps out technological evolution over decades.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+        }
+        .tab-active {
+            border-color: #2563eb;
+            color: #2563eb;
+            background-color: #dbeafe;
+        }
+        .tab-inactive {
+            border-color: transparent;
+            color: #4b5563;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .timeline-item {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .timeline-item.active {
+            background-color: #2563eb;
+            color: white;
+            transform: scale(1.1);
+        }
+        .timeline-content {
+            display: none;
+        }
+        .timeline-content.active {
+            display: block;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">前瞻报告：2100年中国军事装备体系</h1>
+            <p class="text-md text-gray-600 mt-2">基于科技发展曲线与地缘政治推演的战略分析</p>
+        </header>
+
+        <nav class="flex justify-center border-b-2 border-gray-200 mb-8 flex-wrap">
+            <button data-tab="overview" class="tab-btn py-3 px-6 font-semibold border-b-2 transition-colors duration-300 tab-active">概览</button>
+            <button data-tab="core-tech" class="tab-btn py-3 px-6 font-semibold border-b-2 transition-colors duration-300 tab-inactive">核心技术</button>
+            <button data-tab="force-scale" class="tab-btn py-3 px-6 font-semibold border-b-2 transition-colors duration-300 tab-inactive">军种规模</button>
+            <button data-tab="param-evo" class="tab-btn py-3 px-6 font-semibold border-b-2 transition-colors duration-300 tab-inactive">参数演进</button>
+            <button data-tab="tech-roadmap" class="tab-btn py-3 px-6 font-semibold border-b-2 transition-colors duration-300 tab-inactive">技术路径</button>
+        </nav>
+
+        <main>
+            <!-- 概览 Section -->
+            <section id="overview" class="content-section active bg-white p-6 md:p-8 rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold mb-4 text-blue-700">战略概述：迈向认知与物理双重优势</h2>
+                <p class="text-gray-700 leading-relaxed mb-4">
+                    进入22世纪，中国的军事力量已从信息化战争形态全面跃迁至“智能化-认知化”战争新纪元。其装备体系的核心特征表现为“三极一体”：即以全球覆盖的<strong class="text-blue-600">太空作战体系</strong>为高极，以无所不在的<strong class="text-blue-600">量子-AI网络</strong>为神经中枢，以及以<strong class="text-blue-600">人机融合的单兵</strong>为基础作战节点。本报告旨在剖析2100年中国各军种的核心装备、技术突破、力量规模以及关键技术演进路径，揭示一个高度智能、深度融合、跨域作战的未来军事图景。这一体系的设计思想不再是平台对平台的传统对抗，而是以认知优势瓦解对手决策环、以物理优势实现精确决定性打击的全新作战哲学。
+                </p>
+                <div class="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
+                    <h3 class="font-semibold text-lg text-blue-800">核心预测</h3>
+                    <ul class="list-disc list-inside mt-2 text-gray-700 space-y-1">
+                        <li><strong>决策速度：</strong>AI指挥中枢能在毫秒级完成战场态势分析与指令下达，决策速度较人类指挥官提升数万倍。</li>
+                        <li><strong>作战疆域：</strong>常规作战力量延伸至地月空间，太空成为关键战略制高点。</li>
+                        <li><strong>作战单元：</strong>超过75%的打击与侦察任务由高度自主的AI作战单元执行。</li>
+                        <li><strong>单兵效能：</strong>神经链接单兵通过外骨骼与战术网络，实现“超人”般的反应速度与战场感知力。</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 核心技术 Section -->
+            <section id="core-tech" class="content-section">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                        <h3 class="text-xl font-bold text-blue-700 mb-2">天基一体化作战平台</h3>
+                        <p class="text-gray-600">集侦察、通信、导航、打击于一体的模块化轨道平台。可快速重组，执行从轨道防御、卫星捕获到对地精确打击的多样化任务，构成太空军事体系的基石。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                        <h3 class="text-xl font-bold text-blue-700 mb-2">神经链接单兵系统 (“烛龙”)</h3>
+                        <p class="text-gray-600">通过无创/微创脑机接口，实现士兵与外骨骼、无人机蜂群、战术网络的瞬时信息交互。生理状态实时监控，作战指令直达思维，极大缩短反应时间。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                        <h3 class="text-xl font-bold text-blue-700 mb-2">“天机”AI指挥中枢</h3>
+                        <p class="text-gray-600">基于量子计算与类脑智能的最高指挥系统。能实时处理全球传感器数据，进行战争推演、风险评估、任务规划与自主决策，是全军作战的大脑。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                        <h3 class="text-xl font-bold text-blue-700 mb-2">高超声速空天无人机群</h3>
+                        <p class="text-gray-600">可从大气层内任意机场起飞，一小时内抵达全球任何地点。具备高隐身、高机动性，能执行侦察或携带新型概念武器（如电磁脉冲弹）实施突防打击。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                        <h3 class="text-xl font-bold text-blue-700 mb-2">深海自律作战潜航器</h3>
+                        <p class="text-gray-600">无需人工干预，可在深海持续巡航数年。以集群形式构成“水下长城”，执行反潜、布雷、情报搜集及对陆打击任务，实现全域拒止。</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300">
+                        <h3 class="text-xl font-bold text-blue-700 mb-2">定向能与信息武器</h3>
+                        <p class="text-gray-600">高能激光、微波武器成为防空和反导的标准配置。同时，具备瘫痪敌方电子设备、篡改数据、制造虚假战场信息的网络信息武器成为主流。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 军种规模 Section -->
+            <section id="force-scale" class="content-section">
+                <p class="text-center text-gray-600 mb-8">
+                    至2100年，解放军的编制和规模将围绕智能化、无人化和太空化进行重构。人类士兵将更多地扮演监督者和决策者的角色，而绝大部分一线作战任务由AI单元承担。
+                </p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-xl font-bold text-center mb-4">全军作战单元构成 (2100年)</h3>
+                        <div class="chart-container h-64 sm:h-80">
+                            <canvas id="aiUnitsChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-xl font-bold text-center mb-4">太空军舰队编制（第一远征舰队）</h3>
+                        <div class="chart-container h-64 sm:h-80">
+                            <canvas id="spaceFleetChart"></canvas>
+                        </div>
+                         <p class="text-xs text-gray-500 mt-4 text-center">注：太空军预计将编有三支同等规模的远征舰队及若干地球同步轨道防御中队。</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 参数演进 Section -->
+            <section id="param-evo" class="content-section bg-white p-6 md:p-8 rounded-lg shadow-md">
+                 <h2 class="text-2xl font-bold mb-2 text-center">关键装备参数演进对比 (2023-2100)</h2>
+                 <p class="text-center text-gray-600 mb-6">通过以下图表，可以清晰地看到关键军事参数在近80年间的指数级增长。请选择一个参数进行查看。</p>
+                <div class="text-center mb-6">
+                    <select id="paramSelector" class="p-2 rounded-md border border-gray-300 bg-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                        <option value="speed" selected>最大速度 (马赫)</option>
+                        <option value="stealth">隐身性能 (RCS, dBsm)</option>
+                        <option value="firepower">火力密度 (投射/分钟/单位)</option>
+                    </select>
+                </div>
+                <div class="chart-container h-80 md:h-96">
+                    <canvas id="paramEvoChart"></canvas>
+                </div>
+            </section>
+
+            <!-- 技术路径 Section -->
+            <section id="tech-roadmap" class="content-section">
+                <div class="bg-white p-6 md:p-8 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-bold mb-6 text-center">三大关键装备技术演进路径</h2>
+                    
+                    <div class="mb-12">
+                        <h3 class="text-xl font-semibold mb-4 text-blue-700">案例一：“昆仑”级空天母舰</h3>
+                        <div class="relative">
+                            <!-- Timeline Track -->
+                            <div class="absolute left-1/2 -translate-x-1/2 w-1 bg-gray-300 h-full rounded"></div>
+                            
+                            <!-- Timeline Items -->
+                            <div class="flex justify-between items-center w-full mb-4 roadmap-item" data-roadmap="kunlun">
+                                <span class="timeline-item p-3 bg-gray-200 rounded-full z-10 font-bold active" data-target="kl-2040">2040</span>
+                                <span class="timeline-item p-3 bg-gray-200 rounded-full z-10 font-bold" data-target="kl-2060">2060</span>
+                                <span class="timeline-item p-3 bg-gray-200 rounded-full z-10 font-bold" data-target="kl-2080">2080</span>
+                                <span class="timeline-item p-3 bg-gray-200 rounded-full z-10 font-bold" data-target="kl-2100">2100</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Timeline Content -->
+                        <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div id="kl-2040" class="timeline-content active">
+                                <h4 class="font-bold">阶段一：电磁-核动力航母</h4>
+                                <p class="text-sm text-gray-700">第五代核动力航母，集成全电推进与电磁弹射/阻拦系统。实现舰载无人机与有人机协同作战，具备初步区域高超声速防御能力。</p>
+                            </div>
+                            <div id="kl-2060" class="timeline-content">
+                                <h4 class="font-bold">阶段二：临近空间浮空平台</h4>
+                                <p class="text-sm text-gray-700">大型平流层浮空器作为“准航母”，搭载无人机群和侦察设备，实现数月不间断驻空，拓展作战半径与预警时间。</p>
+                            </div>
+                            <div id="kl-2080" class="timeline-content">
+                                <h4 class="font-bold">阶段三：轨道试验平台</h4>
+                                <p class="text-sm text-gray-700">模块化在轨组装的“天宫”空间站扩展为军事试验平台，验证定向能武器、无人机巢和在轨维护技术，为母舰打下基础。</p>
+                            </div>
+                            <div id="kl-2100" class="timeline-content">
+                                <h4 class="font-bold">阶段四：正式部署“昆仑”级</h4>
+                                <p class="text-sm text-gray-700">部署于近地轨道，采用模块化设计，具备自我修复能力。核心为强大的聚变反应堆，可支持高能激光阵列和空天无人机（“凌云”）的作战部署。</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-12">
+                        <h3 class="text-xl font-semibold mb-4 text-blue-700">案例二：“烛龙”单兵外骨骼</h3>
+                         <div class="relative">
+                            <div class="absolute left-1/2 -translate-x-1/2 w-1 bg-gray-300 h-full rounded"></div>
+                            <div class="flex justify-between items-center w-full mb-4 roadmap-item" data-roadmap="zhulong">
+                                <span class="timeline-item p-3 bg-gray-200 rounded-full z-10 font-bold active" data-target="zl-2035">2035</span>
+                                <span class="timeline-item p-3 bg-gray-200 rounded-full z-10 font-bold" data-target="zl-2055">2055</span>
+                                <span class="timeline-item p-3 bg-gray-200 rounded-full z-10 font-bold" data-target="zl-2075">2075</span>
+                                <span class="timeline-item p-3 bg-gray-200 rounded-full z-10 font-bold" data-target="zl-2100">2100</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div id="zl-2035" class="timeline-content active">
+                                <h4 class="font-bold">阶段一：动力辅助外骨骼</h4>
+                                <p class="text-sm text-gray-700">专注于增强负重与机动能力，采用高密度电池。集成AR护目镜，显示基本战术信息，但无神经接口。</p>
+                            </div>
+                            <div id="zl-2055" class="timeline-content">
+                                <h4 class="font-bold">阶段二：肌电传感与AI辅助</h4>
+                                <p class="text-sm text-gray-700">通过肌电传感器预测士兵动作，实现更流畅的人机协同。内置AI战术助手，可进行语音交互和威胁预警。</p>
+                            </div>
+                            <div id="zl-2075" class="timeline-content">
+                                <h4 class="font-bold">阶段三：微创脑机接口植入</h4>
+                                <p class="text-sm text-gray-700">少量志愿者植入微型电极阵列，实现对外骨骼的意念微调控制和对无人机的基本指令下达，验证神经链接可行性。</p>
+                            </div>
+                            <div id="zl-2100" class="timeline-content">
+                                <h4 class="font-bold">阶段四：全功能神经链接</h4>
+                                <p class="text-sm text-gray-700">成熟的无创/微创脑机接口普及。士兵可与装备、蜂群、指挥中枢进行高速数据交换，实现“身随意动”的作战境界，全覆盖变色材料提供动态伪装。</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4 text-blue-700">案例三：“天网”量子侦察网络</h3>
+                         <div class="relative">
+                            <div class="absolute left-1/2 -translate-x-1/2 w-1 bg-gray-300 h-full rounded"></div>
+                            <div class="flex justify-between items-center w-full mb-4 roadmap-item" data-roadmap="tianwang">
+                                <span class="timeline-item p-3 bg-gray-200 rounded-full z-10 font-bold active" data-target="tw-2045">2045</span>
+                                <span class="timeline-item p-3 bg-gray-200 rounded-full z-10 font-bold" data-target="tw-2065">2065</span>
+                                <span class="timeline-item p-3 bg-gray-200 rounded-full z-10 font-bold" data-target="tw-2085">2085</span>
+                                <span class="timeline-item p-3 bg-gray-200 rounded-full z-10 font-bold" data-target="tw-2100">2100</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div id="tw-2045" class="timeline-content active">
+                                <h4 class="font-bold">阶段一：量子通信干线</h4>
+                                <p class="text-sm text-gray-700">建成连接主要指挥节点的“京沪”量子保密通信干线，并利用“墨子号”后续卫星实现天基广域分发，确保战略通信绝对安全。</p>
+                            </div>
+                            <div id="tw-2065" class="timeline-content">
+                                <h4 class="font-bold">阶段二：量子雷达原型</h4>
+                                <p class="text-sm text-gray-700">基于量子纠缠原理的雷达系统进入实验室测试阶段，理论上可探测到隐身目标。体积庞大，功耗极高，仅限地面部署。</p>
+                            </div>
+                            <div id="tw-2085" class="timeline-content">
+                                <h4 class="font-bold">阶段三：天基量子传感卫星</h4>
+                                <p class="text-sm text-gray-700">小型化量子雷达与量子重力仪搭载于专用卫星，组成星座。可初步探测到深海潜艇活动和地下军事设施，重构战场单向透明。</p>
+                            </div>
+                            <div id="tw-2100" class="timeline-content">
+                                <h4 class="font-bold">阶段四：全球量子互联网</h4>
+                                <p class="text-sm text-gray-700">海、陆、空、天基量子传感器完全联网，形成覆盖全球的实时感知网络。任何物理扰动（如飞行器、舰船）都会被即时捕获，战场实现“全息透明”。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const sections = document.querySelectorAll('.content-section');
+            const paramSelector = document.getElementById('paramSelector');
+            const roadmapItems = document.querySelectorAll('.roadmap-item');
+            
+            let paramEvoChartInstance = null;
+
+            function switchTab(tabId) {
+                tabs.forEach(tab => {
+                    if (tab.dataset.tab === tabId) {
+                        tab.classList.remove('tab-inactive');
+                        tab.classList.add('tab-active');
+                    } else {
+                        tab.classList.remove('tab-active');
+                        tab.classList.add('tab-inactive');
+                    }
+                });
+
+                sections.forEach(section => {
+                    if (section.id === tabId) {
+                        section.classList.add('active');
+                    } else {
+                        section.classList.remove('active');
+                    }
+                });
+
+                if (tabId === 'force-scale') {
+                    renderForceScaleCharts();
+                }
+                if (tabId === 'param-evo') {
+                    renderParamEvoChart('speed');
+                }
+            }
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    switchTab(tab.dataset.tab);
+                });
+            });
+
+            roadmapItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('timeline-item')) {
+                        const targetId = e.target.dataset.target;
+                        const roadmapType = e.currentTarget.dataset.roadmap;
+                        
+                        document.querySelectorAll(`[data-roadmap="${roadmapType}"] .timeline-item`).forEach(el => el.classList.remove('active'));
+                        e.target.classList.add('active');
+
+                        document.querySelectorAll(`[id^="${roadmapType.slice(0,2)}-"]`).forEach(content => content.classList.remove('active'));
+                        document.getElementById(targetId).classList.add('active');
+                    }
+                });
+            });
+
+            const chartColors = {
+                blue: 'rgba(59, 130, 246, 0.8)',
+                lightblue: 'rgba(147, 197, 253, 0.8)',
+                darkblue: 'rgba(30, 64, 175, 0.8)',
+                gray: 'rgba(107, 114, 128, 0.8)',
+                teal: 'rgba(20, 184, 166, 0.8)',
+                purple: 'rgba(139, 92, 246, 0.8)',
+                red: 'rgba(239, 68, 68, 0.8)',
+            };
+            const chartBorderColors = {
+                blue: 'rgba(59, 130, 246, 1)',
+                lightblue: 'rgba(147, 197, 253, 1)',
+                darkblue: 'rgba(30, 64, 175, 1)',
+                gray: 'rgba(107, 114, 128, 1)',
+                teal: 'rgba(20, 184, 166, 1)',
+                purple: 'rgba(139, 92, 246, 1)',
+                red: 'rgba(239, 68, 68, 1)',
+            };
+
+            let aiChartInstance, fleetChartInstance;
+            function renderForceScaleCharts() {
+                const aiCtx = document.getElementById('aiUnitsChart');
+                if (aiCtx && !aiChartInstance) {
+                    aiChartInstance = new Chart(aiCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['AI 自主作战单元', '人类士兵', '人机协作单元'],
+                            datasets: [{
+                                data: [75, 10, 15],
+                                backgroundColor: [chartColors.blue, chartColors.gray, chartColors.teal],
+                                borderColor: ['#ffffff'],
+                                borderWidth: 2,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom' },
+                                title: { display: false },
+                                tooltip: { callbacks: { label: (c) => `${c.label}: ${c.raw}%` } }
+                            }
+                        }
+                    });
+                }
+
+                const fleetCtx = document.getElementById('spaceFleetChart');
+                if (fleetCtx && !fleetChartInstance) {
+                    fleetChartInstance = new Chart(fleetCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['空天母舰', '突击舰', '驱逐舰', '护卫舰', '支援舰'],
+                            datasets: [{
+                                label: '数量',
+                                data: [1, 4, 12, 20, 15],
+                                backgroundColor: [chartColors.darkblue, chartColors.purple, chartColors.blue, chartColors.lightblue, chartColors.gray],
+                                borderColor: [chartBorderColors.darkblue, chartBorderColors.purple, chartBorderColors.blue, chartBorderColors.lightblue, chartBorderColors.gray],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                            },
+                            scales: {
+                                x: { beginAtZero: true }
+                            }
+                        }
+                    });
+                }
+            }
+            
+            const evoData = {
+                labels: ['2023', '2040', '2060', '2080', '2100'],
+                datasets: {
+                    speed: [
+                        { label: '战斗机', data: [2.5, 6, 10, 15, 25], borderColor: chartBorderColors.red, backgroundColor: chartColors.red },
+                        { label: '水面舰艇(节)', data: [32, 45, 60, 80, 120], borderColor: chartBorderColors.blue, backgroundColor: chartColors.blue },
+                        { label: '潜艇(节)', data: [35, 50, 75, 110, 150], borderColor: chartBorderColors.darkblue, backgroundColor: chartColors.darkblue }
+                    ],
+                    stealth: [
+                        { label: '战斗机', data: [-35, -50, -65, -75, -90], borderColor: chartBorderColors.red, backgroundColor: chartColors.red },
+                        { label: '水面舰艇', data: [-10, -25, -40, -55, -70], borderColor: chartBorderColors.blue, backgroundColor: chartColors.blue },
+                        { label: '潜艇', data: [-50, -65, -80, -95, -110], borderColor: chartBorderColors.darkblue, backgroundColor: chartColors.darkblue }
+                    ],
+                    firepower: [
+                        { label: '战斗机', data: [100, 500, 2000, 8000, 25000], borderColor: chartBorderColors.red, backgroundColor: chartColors.red },
+                        { label: '水面舰艇', data: [300, 1500, 7000, 20000, 60000], borderColor: chartBorderColors.blue, backgroundColor: chartColors.blue },
+                        { label: '潜艇', data: [80, 400, 1800, 6000, 18000], borderColor: chartBorderColors.darkblue, backgroundColor: chartColors.darkblue }
+                    ]
+                }
+            };
+            
+            const evoTitles = {
+                speed: '最大速度 (战斗机马赫/舰艇节)',
+                stealth: '雷达散射截面 (RCS, dBsm)',
+                firepower: '火力密度 (等效投射/分钟/单位)'
+            };
+
+            function renderParamEvoChart(param) {
+                const ctx = document.getElementById('paramEvoChart');
+                if (!ctx) return;
+                
+                if (paramEvoChartInstance) {
+                    paramEvoChartInstance.destroy();
+                }
+                
+                paramEvoChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: evoData.labels,
+                        datasets: evoData.datasets[param]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: evoTitles[param]
+                            },
+                            legend: {
+                                position: 'bottom'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: '参数值'
+                                }
+                            }
+                        },
+                        interaction: {
+                           intersect: false,
+                           mode: 'index',
+                        },
+                    }
+                });
+            }
+
+            paramSelector.addEventListener('change', (e) => {
+                renderParamEvoChart(e.target.value);
+            });
+
+            // Initial render for the first tab
+            switchTab('overview');
+        });
+    </script>
+</body>
+</html>
