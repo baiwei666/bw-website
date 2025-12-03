@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockMaster - 真实行情监控平台</title>
+    
+    <!-- 核心库引入 -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- 配置 Tailwind -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#0f172a',
+                            card: '#1e293b',
+                            text: '#f1f5f9',
+                            muted: '#94a3b8'
+                        },
+                        trade: {
+                            up: '#10b981',   /* 涨 - 绿 */
+                            down: '#ef4444', /* 跌 - 红 */
+                            wait: '#f59e0b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #0f172a; color: #f1f5f9; font-family: 'Segoe UI', sans-serif; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .animate-pulse-green { animation: pulseGreen 1s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulseGreen {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        /* Markdown style simulation for AI output */
+        .ai-content h3 { font-size: 1.1rem; font-weight: bold; margin-top: 10px; color: #60a5fa; }
+        .ai-content ul { list-style-type: disc; padding-left: 20px; margin: 8px 0; }
+        .ai-content p { margin-bottom: 8px; line-height: 1.5; }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* News analysis style */
+        .news-analysis {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-left: 3px solid #3b82f6;
+            padding: 0.75rem;
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+            color: #dbeafe;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+        // --- 真实数据服务配置 ---
+        // 代理池：当一个失败时尝试下一个，以解决单一代理不稳定的问题
+        const PROXIES = [
+            "https://api.allorigins.win/raw?url=",
+            "https://corsproxy.io/?",
+            "https://thingproxy.freeboard.io/fetch/" 
+        ];
+        const CHART_API_URL = "https://query1.finance.yahoo.com/v8/finance/chart/";
+        const QUOTE_API_URL = "https://query1.finance.yahoo.com/v7/finance/quote";
+        const NEWS_RSS_URL = "https://finance.yahoo.com/news/rssindex"; 
+
+        // 本地名称映射 (保底方案，防止API获取名称失败)
+        const KNOWN_NAMES = {
+            'AAPL': '苹果公司',
+            'TSLA': '特斯拉',
+            'NVDA': '英伟达',
+            '000001.SS': '上证指数',
+            '^IXIC': '纳斯达克',
+            '0700.HK': '腾讯控股',
+            'BABA': '阿里巴巴',
+            'MSFT': '微软',
+            'GOOGL': '谷歌',
+            'AMD': '超威半导体',
+            'INTC': '英特尔',
+            '600519.SS': '贵州茅台'
+        };
+
+        // 默认关注列表
+        const DEFAULT_WATCHLIST = [
+            { symbol: 'AAPL', name: 'Apple Inc.' },
+            { symbol: 'TSLA', name: 'Tesla Inc.' },
+            { symbol: 'NVDA', name: 'NVIDIA Corp.' },
+            { symbol: '000001.SS', name: '上证指数' },
+            { symbol: '^IXIC', name: '纳斯达克' }
+        ];
+
+        // 默认新闻数据
+        const DEFAULT_NEWS = [
+            { id: 1, title: "市场等待关键通胀数据，美股期货窄幅震荡", link: "#", source: "MarketWatch", time: "10分钟前", sentiment: "neutral" },
+            { id: 2, title: "人工智能需求持续飙升，芯片板块领涨", link: "#", source: "Bloomberg", time: "30分钟前", sentiment: "positive" },
+            { id: 3, title: "油价因供应担忧小幅上涨", link: "#", source: "Reuters", time: "1小时前", sentiment: "negative" }
+        ];
+
+        // --- 辅助函数：带重试的 Fetch ---
+        const fetchWithFallback = async (targetUrl) => {
+            const timestamp = new Date().getTime();
+            // 添加时间戳防止代理缓存
+            const urlWithCacheBust = targetUrl + (targetUrl.includes('?') ? '&' : '?') + `_t=${timestamp}`;
+            
+            let lastError = null;
+            for (const proxy of PROXIES) {
+                try {
+                    // 对于 allorigins 等代理，通常需要对 url 进行编码
+                    const fullUrl = `${proxy}${encodeURIComponent(urlWithCacheBust)}`;
+                    const response = await fetch(fullUrl);
+                    if (response.ok) return response;
+                    lastError = new Error(`Status ${response.status}`);
+                } catch (e) {
+                    console.warn(`Proxy ${proxy} failed, trying next...`);
+                    lastError = e;
+                }
+            }
+            throw lastError || new Error("All proxies failed");
+        };
+
+        // --- 图标组件 (SVG) ---
+        const Icon = ({ name, className }) => {
+            const icons = {
+                chart: <path d="M3 3v18h18 M18 17V9 M13 17V5 M8 17v-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+                wallet: <path d="M20 7h-7a4 4 0 00-4 4v9h11v-9a4 4 0 00-4-4z M4 9v9a4 4 0 004 4h7 M4 9a4 4 0 014-4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+                news: <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+                brain: <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 14a4 4 0 110-8 4 4 0 010 8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+                trendingUp: <path d="M23 6l-9.5 9.5-5-5L1 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+                plus: <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+                trash: <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+                refresh: <path d="M23 4v6h-6M1 20v-6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+                robot: <><rect x="3" y="11" width="18" height="10" rx="2" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="5" r="2" stroke="currentColor" strokeWidth="2"/><path d="M12 7v4" stroke="currentColor" strokeWidth="2"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></>,
+                search: <><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" strokeWidth="2"/></>,
+                lock: <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+                unlock: <path d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+                edit: <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+                link: <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+                sparkles: <path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            };
+            return <svg className={className} viewBox="0 0 24 24" fill="none">{icons[name]}</svg>;
+        };
+
+        // --- 核心组件: K线图 ---
+        const StockChart = ({ symbol, data, color }) => {
+            const chartRef = useRef(null);
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                if (!canvasRef.current || !data || data.length === 0) return;
+                
+                if (chartRef.current) {
+                    chartRef.current.destroy();
+                }
+
+                const ctx = canvasRef.current.getContext('2d');
+                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                gradient.addColorStop(0, color === 'green' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+                const borderColor = color === 'green' ? '#10b981' : '#ef4444';
+                const displayData = data.filter((_, i) => i % Math.max(1, Math.floor(data.length / 50)) === 0);
+
+                chartRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: displayData.map(d => d.time),
+                        datasets: [{
+                            label: symbol,
+                            data: displayData.map(d => d.price),
+                            borderColor: borderColor,
+                            backgroundColor: gradient,
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            fill: true,
+                            tension: 0.2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                titleColor: '#fff',
+                                bodyColor: '#ccc',
+                                borderColor: 'rgba(255,255,255,0.1)',
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            x: { display: false },
+                            y: { 
+                                display: true, 
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { color: '#64748b' }
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        }
+                    }
+                });
+
+                return () => {
+                    if (chartRef.current) chartRef.current.destroy();
+                };
+            }, [data, symbol, color]);
+
+            return <div className="h-64 w-full"><canvas ref={canvasRef}></canvas></div>;
+        };
+
+        // --- 主应用组件 ---
+        const App = () => {
+            // 状态管理
+            const [activeTab, setActiveTab] = useState('dashboard');
+            
+            // 投资组合
+            const [portfolio, setPortfolio] = useState(() => {
+                const saved = localStorage.getItem('sm_portfolio');
+                return saved ? JSON.parse(saved) : [
+                    { symbol: 'AAPL', shares: 10, cost: 150.00, locked: false },
+                    { symbol: '0700.HK', shares: 100, cost: 300.00, locked: true }
+                ];
+            });
+
+            // 关注列表
+            const [watchlist, setWatchlist] = useState(() => {
+                const saved = localStorage.getItem('sm_watchlist');
+                return saved ? JSON.parse(saved) : DEFAULT_WATCHLIST.map(s => s.symbol);
+            });
+
+            // 新闻数据
+            const [newsList, setNewsList] = useState(DEFAULT_NEWS);
+            const [isNewsLoading, setIsNewsLoading] = useState(false);
+            const [analyzingNewsId, setAnalyzingNewsId] = useState(null); // 正在分析的新闻ID
+
+            // 市场数据缓存
+            const [marketData, setMarketData] = useState({});
+            const [isLoadingData, setIsLoadingData] = useState(false);
+            const [lastUpdated, setLastUpdated] = useState(null);
+
+            // AI 相关
+            const [aiAnalysis, setAiAnalysis] = useState("");
+            const [isAnalyzing, setIsAnalyzing] = useState(false);
+            const [apiKey, setApiKey] = useState(localStorage.getItem('sm_openai_key') || '');
+            const [apiEndpoint, setApiEndpoint] = useState(localStorage.getItem('sm_api_endpoint') || 'https://api.openai.com/v1/chat/completions');
+            const [apiModel, setApiModel] = useState(localStorage.getItem('sm_api_model') || 'gpt-3.5-turbo');
+            
+            // UI 状态
+            const [showSettings, setShowSettings] = useState(false);
+            const [notification, setNotification] = useState(null);
+            
+            // 股票模态框
+            const [stockModal, setStockModal] = useState({ show: false, mode: 'add', symbol: '', shares: '', cost: '', originalSymbol: '' });
+            const [watchlistInput, setWatchlistInput] = useState('');
+
+            // 所有需要监控的 Symbol
+            const allSymbols = useMemo(() => {
+                const pSymbols = portfolio.map(p => p.symbol);
+                return Array.from(new Set([...pSymbols, ...watchlist]));
+            }, [portfolio, watchlist]);
+
+            // --- 数据获取：批量获取行情 (Name + Price) ---
+            const fetchQuoteBatch = async (symbols) => {
+                if (!symbols || symbols.length === 0) return {};
+                try {
+                    const symbolsParam = symbols.join(',');
+                    // 使用 Quote API 获取名称和基础数据
+                    const response = await fetchWithFallback(`${QUOTE_API_URL}?symbols=${symbolsParam}`);
+                    const json = await response.json();
+                    
+                    const results = json.quoteResponse?.result || [];
+                    
+                    const map = {};
+                    results.forEach(item => {
+                        map[item.symbol] = {
+                            symbol: item.symbol,
+                            name: item.shortName || item.longName || KNOWN_NAMES[item.symbol] || item.symbol, 
+                            currentPrice: item.regularMarketPrice,
+                            change: item.regularMarketChange?.toFixed(2),
+                            changePercent: item.regularMarketChangePercent?.toFixed(2),
+                            currency: item.currency
+                        };
+                    });
+                    return map;
+                } catch (error) {
+                    console.warn("Quote Batch Warning (Using fallback names):", error.message);
+                    return {};
+                }
+            };
+
+            // --- 数据获取：单个获取历史K线 (Chart) ---
+            const fetchChartData = async (symbol) => {
+                try {
+                    const response = await fetchWithFallback(`${CHART_API_URL}${symbol}?interval=60m&range=5d`);
+                    const json = await response.json();
+                    const result = json.chart.result[0];
+                    if (!result) return null;
+
+                    const quotes = result.indicators.quote[0];
+                    const timestamps = result.timestamp;
+                    const history = [];
+
+                    if (timestamps && quotes.close) {
+                        timestamps.forEach((t, i) => {
+                            if (quotes.close[i] != null) {
+                                const date = new Date(t * 1000);
+                                history.push({
+                                    time: `${date.getMonth()+1}/${date.getDate()} ${date.getHours()}:${date.getMinutes()<10?'0':''}${date.getMinutes()}`,
+                                    price: parseFloat(quotes.close[i].toFixed(2))
+                                });
+                            }
+                        });
+                    }
+                    return history;
+                } catch (error) {
+                    console.warn(`Chart fetch warning for ${symbol}:`, error.message);
+                    return null; 
+                }
+            };
+
+            // --- 核心刷新逻辑 ---
+            const refreshAllData = useCallback(async () => {
+                setIsLoadingData(true);
+                
+                // 1. 批量获取基础行情 (包含准确名称)
+                const quoteMap = await fetchQuoteBatch(allSymbols);
+                
+                // 2. 并行获取 K 线数据 (Chart)
+                const promises = allSymbols.map(async (sym) => {
+                    const history = await fetchChartData(sym);
+                    
+                    // 尝试从 API 结果获取，如果没有则使用 KNOWN_NAMES，最后使用 symbol
+                    const quote = quoteMap[sym];
+                    const fallbackName = KNOWN_NAMES[sym] || sym;
+
+                    // 数据合并策略
+                    if (quote) {
+                        return {
+                            ...quote,
+                            history: history || [] 
+                        };
+                    } else if (history && history.length > 0) {
+                        // 如果 Quote 失败但 Chart 成功
+                        const last = history[history.length - 1];
+                        const prev = history[0]; // 粗略计算
+                        return {
+                            symbol: sym,
+                            name: fallbackName, 
+                            currentPrice: last.price,
+                            change: (last.price - prev.price).toFixed(2),
+                            changePercent: ((last.price - prev.price) / prev.price * 100).toFixed(2),
+                            history: history,
+                            currency: 'USD' // 默认
+                        };
+                    }
+                    return null;
+                });
+
+                const results = await Promise.all(promises);
+                const newData = {};
+                results.forEach(r => { if(r) newData[r.symbol] = r; });
+
+                if (Object.keys(newData).length > 0) {
+                    setMarketData(newData);
+                    setLastUpdated(new Date());
+                    showNotification('行情数据已更新', 'success');
+                } else {
+                    showNotification('数据更新失败，请检查网络', 'warning');
+                }
+                
+                setIsLoadingData(false);
+            }, [allSymbols]);
+
+            // --- 新闻抓取 ---
+            const fetchNews = useCallback(async () => {
+                setIsNewsLoading(true);
+                try {
+                    const response = await fetchWithFallback(NEWS_RSS_URL);
+                    const str = await response.text();
+                    const data = new window.DOMParser().parseFromString(str, "text/xml");
+                    const items = data.querySelectorAll("item");
+                    
+                    const newNews = Array.from(items).slice(0, 12).map((item, index) => {
+                        const pubDate = new Date(item.querySelector("pubDate")?.textContent);
+                        const timeStr = pubDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        return {
+                            id: index,
+                            title: item.querySelector("title")?.textContent,
+                            link: item.querySelector("link")?.textContent,
+                            source: "Yahoo Finance",
+                            time: timeStr,
+                            sentiment: "neutral",
+                            analysis: null // 初始化分析字段
+                        };
+                    });
+                    
+                    if (newNews.length > 0) {
+                        setNewsList(newNews);
+                        showNotification('新闻已更新', 'success');
+                    }
+                } catch (error) {
+                    console.warn("News fetch warning:", error.message);
+                } finally {
+                    setIsNewsLoading(false);
+                }
+            }, []);
+
+            // --- 新闻分析 ---
+            const analyzeNewsItem = async (item) => {
+                if (!apiKey) {
+                    setShowSettings(true);
+                    showNotification('请先设置 API Key', 'warning');
+                    return;
+                }
+                
+                setAnalyzingNewsId(item.id);
+                const prompt = `请分析这篇财经新闻标题：“${item.title}”。
+请严格按照以下格式输出简报：
+影响板块：[板块名称]
+情绪：[看跌/中性/看涨]
+简述：[100字以内的分析]`;
+
+                try {
+                    const response = await fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                        body: JSON.stringify({
+                            model: apiModel,
+                            messages: [{ role: "user", content: prompt }],
+                            temperature: 0.7
+                        })
+                    });
+                    const data = await response.json();
+                    if (data.error) throw new Error(data.error.message);
+                    
+                    const result = data.choices[0].message.content;
+                    
+                    // 更新新闻列表状态
+                    setNewsList(prev => prev.map(n => n.id === item.id ? { ...n, analysis: result } : n));
+                    showNotification('分析完成', 'success');
+                } catch (error) {
+                    showNotification(`分析失败: ${error.message}`, 'error');
+                } finally {
+                    setAnalyzingNewsId(null);
+                }
+            };
+
+            // 初始化
+            useEffect(() => {
+                refreshAllData();
+                fetchNews();
+                const interval = setInterval(refreshAllData, 60000);
+                return () => clearInterval(interval);
+            }, [allSymbols]);
+
+            // 持久化存储
+            useEffect(() => {
+                localStorage.setItem('sm_portfolio', JSON.stringify(portfolio));
+            }, [portfolio]);
+            
+            useEffect(() => {
+                localStorage.setItem('sm_watchlist', JSON.stringify(watchlist));
+            }, [watchlist]);
+
+            // 计算总资产
+            const totalValue = useMemo(() => {
+                return portfolio.reduce((sum, item) => {
+                    const price = marketData[item.symbol]?.currentPrice || 0;
+                    return sum + (price * item.shares);
+                }, 0);
+            }, [portfolio, marketData]);
+
+            const totalCost = useMemo(() => {
+                return portfolio.reduce((sum, item) => sum + (item.cost * item.shares), 0);
+            }, [portfolio]);
+
+            const totalPnL = totalValue - totalCost;
+            const totalPnLPercent = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
+
+            // --- 操作函数 ---
+            const openAddStockModal = () => {
+                setStockModal({ show: true, mode: 'add', symbol: '', shares: '', cost: '', originalSymbol: '' });
+            };
+
+            const openEditStockModal = (item) => {
+                if (item.locked) return;
+                setStockModal({ show: true, mode: 'edit', symbol: item.symbol, shares: item.shares, cost: item.cost, originalSymbol: item.symbol });
+            };
+
+            const handleSaveStock = async (e) => {
+                e.preventDefault();
+                const symbol = stockModal.symbol.toUpperCase().trim();
+                const shares = parseFloat(stockModal.shares);
+                const cost = parseFloat(stockModal.cost);
+
+                if (stockModal.mode === 'add') {
+                    showNotification(`正在验证: ${symbol}...`, 'info');
+                    // 验证时使用 Quote API 检查是否存在
+                    const quotes = await fetchQuoteBatch([symbol]);
+                    
+                    const history = await fetchChartData(symbol);
+                    const isValid = quotes[symbol] || (history && history.length > 0);
+
+                    if (!isValid) {
+                        showNotification(`无法获取 ${symbol} 数据`, 'error');
+                        return;
+                    }
+                    
+                    const newPortfolio = [...portfolio];
+                    const existingIndex = newPortfolio.findIndex(p => p.symbol === symbol);
+                    
+                    if (existingIndex >= 0) {
+                        const oldItem = newPortfolio[existingIndex];
+                        if (oldItem.locked) {
+                            showNotification('该股票已锁定，无法添加', 'warning');
+                            return;
+                        }
+                        const totalShares = oldItem.shares + shares;
+                        const avgCost = ((oldItem.shares * oldItem.cost) + (shares * cost)) / totalShares;
+                        newPortfolio[existingIndex] = { ...oldItem, shares: totalShares, cost: avgCost };
+                    } else {
+                        newPortfolio.push({ symbol, shares, cost, locked: false });
+                    }
+                    setPortfolio(newPortfolio);
+                    
+                    // 构造数据以立即显示
+                    const dataObj = quotes[symbol] || {
+                        symbol: symbol,
+                        name: KNOWN_NAMES[symbol] || symbol,
+                        currentPrice: history[history.length-1].price,
+                        change: 0, changePercent: 0, currency: 'USD'
+                    };
+                    
+                    setMarketData(prev => ({ 
+                        ...prev, 
+                        [symbol]: { ...dataObj, history: history || [] } 
+                    }));
+                    showNotification('持仓已更新', 'success');
+
+                } else if (stockModal.mode === 'edit') {
+                    const newPortfolio = portfolio.map(p => {
+                        if (p.symbol === stockModal.originalSymbol) {
+                            return { ...p, shares, cost };
+                        }
+                        return p;
+                    });
+                    setPortfolio(newPortfolio);
+                    showNotification('持仓已修改', 'success');
+                }
+
+                setStockModal({ ...stockModal, show: false });
+            };
+
+            const handleRemoveStock = (symbol) => {
+                const item = portfolio.find(p => p.symbol === symbol);
+                if (item && item.locked) {
+                    showNotification('该持仓已锁定，请先解锁', 'warning');
+                    return;
+                }
+                if (confirm(`确定要删除 ${symbol} 的持仓记录吗？`)) {
+                    setPortfolio(portfolio.filter(p => p.symbol !== symbol));
+                }
+            };
+
+            const toggleLock = (symbol) => {
+                setPortfolio(portfolio.map(p => 
+                    p.symbol === symbol ? { ...p, locked: !p.locked } : p
+                ));
+            };
+
+            const handleAddWatchlist = async (e) => {
+                e.preventDefault();
+                if (!watchlistInput) return;
+                const symbol = watchlistInput.toUpperCase().trim();
+                
+                if (watchlist.includes(symbol)) {
+                    showNotification('该股票已在自选列表中', 'warning');
+                    return;
+                }
+
+                showNotification(`验证股票: ${symbol}...`, 'info');
+                const quotes = await fetchQuoteBatch([symbol]);
+                // 同样双重验证
+                const history = await fetchChartData(symbol);
+                const isValid = quotes[symbol] || (history && history.length > 0);
+
+                if (isValid) {
+                    setWatchlist([...watchlist, symbol]);
+                    const dataObj = quotes[symbol] || {
+                        symbol: symbol,
+                        name: KNOWN_NAMES[symbol] || symbol,
+                        currentPrice: history ? history[history.length-1].price : 0,
+                        change: 0, changePercent: 0, currency: 'USD'
+                    };
+                    setMarketData(prev => ({ 
+                        ...prev, 
+                        [symbol]: { ...dataObj, history: history || [] } 
+                    }));
+                    setWatchlistInput('');
+                    showNotification('已添加自选', 'success');
+                } else {
+                    showNotification('无效的股票代码', 'error');
+                }
+            };
+
+            const handleRemoveWatchlist = (symbol) => {
+                setWatchlist(watchlist.filter(s => s !== symbol));
+            };
+
+            const refreshSingleStock = async (symbol) => {
+                showNotification(`正在刷新 ${symbol}...`, 'info');
+                const quotes = await fetchQuoteBatch([symbol]);
+                const history = await fetchChartData(symbol);
+                
+                // 只要有任意一个数据源成功即可
+                if (quotes[symbol] || (history && history.length > 0)) {
+                    const oldData = marketData[symbol] || {};
+                    const quote = quotes[symbol] || {};
+                    
+                    const newData = {
+                        symbol: symbol,
+                        name: quote.name || oldData.name || KNOWN_NAMES[symbol] || symbol,
+                        currentPrice: quote.currentPrice || (history ? history[history.length-1].price : oldData.currentPrice),
+                        change: quote.change || oldData.change,
+                        changePercent: quote.changePercent || oldData.changePercent,
+                        currency: quote.currency || oldData.currency || 'USD',
+                        history: history || oldData.history || []
+                    };
+
+                    setMarketData(prev => ({ ...prev, [symbol]: newData }));
+                    showNotification(`${symbol} 已刷新`, 'success');
+                } else {
+                    showNotification('刷新失败', 'error');
+                }
+            };
+
+            // AI 分析
+            const analyzePortfolio = async () => {
+                if (!apiKey) {
+                    setShowSettings(true);
+                    showNotification('请先在设置中输入 API Key', 'warning');
+                    return;
+                }
+                setIsAnalyzing(true);
+                setAiAnalysis("");
+                const portfolioSummary = portfolio.map(p => {
+                    const data = marketData[p.symbol];
+                    const name = data?.name || KNOWN_NAMES[p.symbol] || p.symbol;
+                    const currentVal = data ? data.currentPrice * p.shares : 0;
+                    const profit = currentVal - (p.cost * p.shares);
+                    return `${name} (${p.symbol}): 持仓${p.shares}, 成本${p.cost}, 现价${data?.currentPrice}, 盈亏${profit.toFixed(2)}`;
+                }).join('\n');
+                const prompt = `作为一个专业的金融分析师，请根据以下真实投资组合数据提供简短的市场分析和操作建议（中文）。\n投资组合：\n${portfolioSummary}\n\n请提供：\n1. 组合风险评估\n2. 针对表现最好和最差股票的具体建议\n3. 下一步操作建议`;
+                try {
+                    const response = await fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                        body: JSON.stringify({ model: apiModel, messages: [{ role: "user", content: prompt }], temperature: 0.7 })
+                    });
+                    const data = await response.json();
+                    if (data.error) throw new Error(data.error.message || 'API Error');
+                    setAiAnalysis(data.choices[0].message.content);
+                } catch (error) {
+                    setAiAnalysis(`分析失败: ${error.message}。\n请检查设置中的 API 地址、Key 和模型名称是否正确。`);
+                } finally {
+                    setIsAnalyzing(false);
+                }
+            };
+
+            const showNotification = (msg, type = 'info') => {
+                setNotification({ msg, type });
+                setTimeout(() => setNotification(null), 4000);
+            };
+
+            // 渲染
+            return (
+                <div className="min-h-screen bg-dark-bg text-dark-text pb-20 md:pb-0 md:pl-64">
+                    {/* 侧边导航 */}
+                    <nav className="hidden md:flex flex-col w-64 fixed top-0 left-0 h-full bg-dark-card border-r border-slate-700 p-4 z-40">
+                        <div className="flex items-center gap-2 mb-8 px-2">
+                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                <Icon name="trendingUp" className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">StockMaster</h1>
+                                <span className="text-xs text-slate-500">真实行情版</span>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <NavButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon="chart" label="市场概览" />
+                            <NavButton active={activeTab === 'portfolio'} onClick={() => setActiveTab('portfolio')} icon="wallet" label="投资组合" />
+                            <NavButton active={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')} icon="brain" label="智能分析" />
+                            <NavButton active={activeTab === 'news'} onClick={() => setActiveTab('news')} icon="news" label="财经新闻" />
+                        </div>
+                        <div className="mt-auto">
+                            <div className="px-4 py-2 text-xs text-slate-500">
+                                数据源: Yahoo Finance<br/>
+                                更新: {lastUpdated ? lastUpdated.toLocaleTimeString() : '...'}
+                            </div>
+                            <button onClick={() => setShowSettings(!showSettings)} className="flex items-center gap-3 px-4 py-3 w-full text-slate-400 hover:text-white transition-colors">
+                                <span className="w-5 h-5">⚙️</span>
+                                <span>系统设置</span>
+                            </button>
+                        </div>
+                    </nav>
+
+                    {/* 移动端顶部/底部导航 */}
+                    <header className="md:hidden fixed top-0 w-full z-50 bg-dark-card border-b border-slate-700 p-4 flex justify-between items-center glass-panel">
+                        <div className="font-bold text-lg text-blue-400">StockMaster <span className="text-xs text-slate-500 ml-1">Real</span></div>
+                        <button onClick={() => setShowSettings(true)} className="text-slate-400">⚙️</button>
+                    </header>
+                    <nav className="md:hidden fixed bottom-0 w-full z-50 bg-dark-card border-t border-slate-700 flex justify-around p-3 pb-safe glass-panel">
+                        <MobileNavBtn active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon="chart" />
+                        <MobileNavBtn active={activeTab === 'portfolio'} onClick={() => setActiveTab('portfolio')} icon="wallet" />
+                        <MobileNavBtn active={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')} icon="brain" />
+                        <MobileNavBtn active={activeTab === 'news'} onClick={() => setActiveTab('news')} icon="news" />
+                    </nav>
+
+                    {/* 主内容区域 */}
+                    <main className="p-4 pt-20 md:p-8 max-w-7xl mx-auto min-h-screen">
+                        
+                        {/* 提示框 */}
+                        {notification && (
+                            <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 border ${notification.type === 'error' ? 'bg-red-900/90 border-red-500' : notification.type === 'warning' ? 'bg-yellow-800/90 border-yellow-500' : 'bg-emerald-900/90 border-emerald-500'}`}>
+                                {notification.msg}
+                            </div>
+                        )}
+
+                        {/* 设置模态框 */}
+                        {showSettings && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                                <div className="bg-dark-card p-6 rounded-xl border border-slate-700 w-full max-w-md shadow-2xl">
+                                    <h3 className="text-xl font-bold mb-4">系统设置</h3>
+                                    <div className="space-y-4">
+                                        <input type="text" value={apiEndpoint} onChange={(e) => {setApiEndpoint(e.target.value); localStorage.setItem('sm_api_endpoint', e.target.value);}} className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" placeholder="API Endpoint" />
+                                        <input type="password" value={apiKey} onChange={(e) => {setApiKey(e.target.value); localStorage.setItem('sm_openai_key', e.target.value);}} className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" placeholder="API Key" />
+                                        <input type="text" value={apiModel} onChange={(e) => {setApiModel(e.target.value); localStorage.setItem('sm_api_model', e.target.value);}} className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" placeholder="Model Name" />
+                                        <button onClick={() => setShowSettings(false)} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg">保存并关闭</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 添加/编辑股票模态框 */}
+                        {stockModal.show && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                                <div className="bg-dark-card p-6 rounded-xl border border-slate-700 w-full max-w-md shadow-2xl">
+                                    <h3 className="text-xl font-bold mb-4">{stockModal.mode === 'add' ? '添加持仓' : '编辑持仓'}</h3>
+                                    <form onSubmit={handleSaveStock} className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm text-slate-400 mb-1">股票代码</label>
+                                            <input 
+                                                value={stockModal.symbol}
+                                                onChange={e => setStockModal({...stockModal, symbol: e.target.value})}
+                                                disabled={stockModal.mode === 'edit'}
+                                                placeholder="例如: AAPL" 
+                                                required 
+                                                className={`w-full bg-slate-800 border border-slate-700 rounded p-2 text-white focus:outline-none focus:border-blue-500 uppercase ${stockModal.mode === 'edit' ? 'opacity-50' : ''}`} 
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm text-slate-400 mb-1">持仓数量</label>
+                                                <input 
+                                                    value={stockModal.shares}
+                                                    onChange={e => setStockModal({...stockModal, shares: e.target.value})}
+                                                    type="number" step="0.01" required className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" 
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm text-slate-400 mb-1">成本单价</label>
+                                                <input 
+                                                    value={stockModal.cost}
+                                                    onChange={e => setStockModal({...stockModal, cost: e.target.value})}
+                                                    type="number" step="0.01" required className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" 
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3 pt-2">
+                                            <button type="button" onClick={() => setStockModal({...stockModal, show: false})} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg">取消</button>
+                                            <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg">保存</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 页面内容路由 */}
+                        {activeTab === 'dashboard' && (
+                            <div className="space-y-6 animate-fade-in">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <StatCard title="总资产 (估算)" value={`$${totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} subValue={`${totalPnLPercent > 0 ? '+' : ''}${totalPnLPercent.toFixed(2)}%`} isUp={totalPnL >= 0} />
+                                    <StatCard title="总盈亏" value={`$${totalPnL.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} subValue="累计" isUp={totalPnL >= 0} />
+                                    <StatCard title="持仓数量" value={portfolio.length} subValue="支股票" isNeutral />
+                                </div>
+
+                                {/* 指数图表区域 */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {['000001.SS', '^IXIC'].map(sym => {
+                                        const data = marketData[sym];
+                                        if (!data) return isLoadingData ? <div key={sym} className="h-64 bg-dark-card rounded-xl flex items-center justify-center"><div className="loader"></div></div> : null;
+                                        return (
+                                            <div key={sym} className="bg-dark-card rounded-xl p-4 border border-slate-700">
+                                                <h3 className="text-lg font-semibold mb-4 flex items-center justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`w-2 h-2 rounded-full ${parseFloat(data.change) >= 0 ? 'bg-trade-up' : 'bg-trade-down'}`}></span> 
+                                                        {/* 显示真实名称 */}
+                                                        {data.name}
+                                                    </div>
+                                                    <button onClick={() => refreshSingleStock(sym)} className="text-xs text-slate-500 hover:text-white flex items-center gap-1">
+                                                        <Icon name="refresh" className="w-3 h-3" /> 刷新
+                                                    </button>
+                                                </h3>
+                                                <div className="h-64">
+                                                    <div className="text-2xl font-bold mb-2 flex items-baseline gap-2">
+                                                        {data.currentPrice.toFixed(2)}
+                                                        <span className={`text-sm ${parseFloat(data.change) >= 0 ? 'text-trade-up' : 'text-trade-down'}`}>
+                                                            {data.change > 0 ? '+' : ''}{data.change} ({data.changePercent}%)
+                                                        </span>
+                                                    </div>
+                                                    <StockChart symbol={sym} data={data.history} color={parseFloat(data.change) >= 0 ? 'green' : 'red'} />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* 市场行情 (自选股) */}
+                                <div className="bg-dark-card rounded-xl border border-slate-700 overflow-hidden">
+                                    <div className="p-4 border-b border-slate-700 font-semibold flex flex-col md:flex-row justify-between items-center gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <span>市场行情 (自选)</span>
+                                            <button onClick={refreshAllData} className="text-slate-400 hover:text-white" title="全部刷新">
+                                                <Icon name="refresh" className={`w-4 h-4 ${isLoadingData ? 'animate-spin' : ''}`} />
+                                            </button>
+                                        </div>
+                                        <form onSubmit={handleAddWatchlist} className="flex items-center gap-2 w-full md:w-auto">
+                                            <input 
+                                                value={watchlistInput}
+                                                onChange={(e) => setWatchlistInput(e.target.value)}
+                                                placeholder="添加自选代码..." 
+                                                className="bg-slate-800 border border-slate-700 rounded px-3 py-1 text-sm text-white focus:outline-none uppercase w-full"
+                                            />
+                                            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white p-1 rounded">
+                                                <Icon name="plus" className="w-4 h-4" />
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <div className="divide-y divide-slate-700">
+                                        {watchlist.map(sym => {
+                                            const stock = marketData[sym];
+                                            if (!stock) return null;
+                                            return (
+                                                <div key={sym} className="p-4 flex justify-between items-center hover:bg-slate-800 transition-colors group">
+                                                    <div>
+                                                        {/* 优先显示名称，副标题显示代码 */}
+                                                        <div className="font-bold">{stock.name}</div>
+                                                        <div className="text-xs text-slate-400">{sym}</div>
+                                                    </div>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`text-right ${parseFloat(stock.change) >= 0 ? 'text-trade-up' : 'text-trade-down'}`}>
+                                                            <div className="font-mono text-lg">{stock.currentPrice.toFixed(2)}</div>
+                                                            <div className="text-xs">{stock.changePercent}%</div>
+                                                        </div>
+                                                        <button onClick={() => handleRemoveWatchlist(sym)} className="text-slate-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Icon name="trash" className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        {watchlist.length === 0 && <div className="p-4 text-center text-slate-500 text-sm">暂无自选股，请在上方添加</div>}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'portfolio' && (
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center">
+                                    <h2 className="text-xl font-bold">我的持仓</h2>
+                                    <button onClick={openAddStockModal} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                                        <Icon name="plus" className="w-4 h-4" /> 添加股票
+                                    </button>
+                                </div>
+
+                                <div className="bg-dark-card rounded-xl border border-slate-700 overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-slate-800 text-slate-400 text-xs uppercase">
+                                                <tr>
+                                                    <th className="p-4">名称/代码</th>
+                                                    <th className="p-4 text-right">持有/成本</th>
+                                                    <th className="p-4 text-right">现价/市值</th>
+                                                    <th className="p-4 text-right">总盈亏</th>
+                                                    <th className="p-4 text-center">操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-700 text-sm">
+                                                {portfolio.map(item => {
+                                                    const market = marketData[item.symbol];
+                                                    const currentPrice = market?.currentPrice || 0;
+                                                    const marketVal = currentPrice * item.shares;
+                                                    const pnl = marketVal - (item.cost * item.shares);
+                                                    const pnlPercent = (pnl / (item.cost * item.shares)) * 100;
+
+                                                    return (
+                                                        <tr key={item.symbol} className="hover:bg-slate-800/50 transition-colors">
+                                                            <td className="p-4">
+                                                                <div className="font-bold flex items-center gap-2">
+                                                                    {market?.name || KNOWN_NAMES[item.symbol] || item.symbol}
+                                                                    {item.locked && <Icon name="lock" className="w-3 h-3 text-yellow-500" />}
+                                                                </div>
+                                                                <div className="text-xs text-slate-500">{item.symbol}</div>
+                                                            </td>
+                                                            <td className="p-4 text-right font-mono">
+                                                                <div>{item.shares}股</div>
+                                                                <div className="text-slate-500">@{item.cost.toFixed(2)}</div>
+                                                            </td>
+                                                            <td className="p-4 text-right font-mono">
+                                                                <div>{currentPrice.toFixed(2)}</div>
+                                                                <div className="text-slate-400 font-bold">${marketVal.toFixed(2)}</div>
+                                                            </td>
+                                                            <td className={`p-4 text-right font-mono ${pnl >= 0 ? 'text-trade-up' : 'text-trade-down'}`}>
+                                                                <div>{pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}</div>
+                                                                <div className="text-xs">{pnlPercent.toFixed(2)}%</div>
+                                                            </td>
+                                                            <td className="p-4 text-center">
+                                                                <div className="flex items-center justify-center gap-2">
+                                                                    <button onClick={() => toggleLock(item.symbol)} className="text-slate-500 hover:text-yellow-500" title={item.locked ? "解锁" : "锁定"}>
+                                                                        <Icon name={item.locked ? "lock" : "unlock"} className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button onClick={() => openEditStockModal(item)} className={`text-slate-500 hover:text-blue-500 ${item.locked ? 'opacity-30 cursor-not-allowed' : ''}`} title="编辑">
+                                                                        <Icon name="edit" className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button onClick={() => handleRemoveStock(item.symbol)} className={`text-slate-500 hover:text-red-500 ${item.locked ? 'opacity-30 cursor-not-allowed' : ''}`} title="删除">
+                                                                        <Icon name="trash" className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {portfolio.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan="6" className="p-8 text-center text-slate-500">
+                                                            暂无持仓记录，请点击右上角添加。
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'analysis' && (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                                <div className="lg:col-span-1 space-y-4">
+                                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="bg-white/20 p-2 rounded-lg"><Icon name="robot" className="w-6 h-6" /></div>
+                                            <h2 className="text-xl font-bold">AI 智能投顾</h2>
+                                        </div>
+                                        <p className="text-blue-100 text-sm mb-6">
+                                            基于您当前的真实持仓数据，结合实时市场行情，生成专业的操作建议报告。
+                                        </p>
+                                        <button 
+                                            onClick={analyzePortfolio} 
+                                            disabled={isAnalyzing}
+                                            className={`w-full py-3 rounded-lg font-bold bg-white text-blue-600 shadow-sm hover:bg-blue-50 transition-all ${isAnalyzing ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                        >
+                                            {isAnalyzing ? '正在深度分析...' : '生成投资报告'}
+                                        </button>
+                                    </div>
+
+                                    {/* 持仓分布简易饼图模拟 */}
+                                    <div className="bg-dark-card rounded-xl p-6 border border-slate-700">
+                                        <h3 className="font-bold mb-4">资产分布</h3>
+                                        <div className="space-y-3">
+                                            {portfolio.map(item => {
+                                                const val = (marketData[item.symbol]?.currentPrice || 0) * item.shares;
+                                                const percent = totalValue > 0 ? (val / totalValue) * 100 : 0;
+                                                return (
+                                                    <div key={item.symbol}>
+                                                        <div className="flex justify-between text-xs mb-1">
+                                                            <span>{marketData[item.symbol]?.name || KNOWN_NAMES[item.symbol] || item.symbol}</span>
+                                                            <span>{percent.toFixed(1)}%</span>
+                                                        </div>
+                                                        <div className="w-full bg-slate-700 rounded-full h-2">
+                                                            <div className="bg-blue-500 h-2 rounded-full" style={{width: `${percent}%`}}></div>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="lg:col-span-2 bg-dark-card rounded-xl border border-slate-700 p-6 min-h-[400px]">
+                                    <h3 className="text-lg font-bold mb-4 border-b border-slate-700 pb-2">分析报告</h3>
+                                    {aiAnalysis ? (
+                                        <div className="ai-content text-slate-300 animate-fade-in whitespace-pre-wrap">
+                                            {aiAnalysis}
+                                        </div>
+                                    ) : (
+                                        <div className="h-full flex flex-col items-center justify-center text-slate-500 opacity-50">
+                                            <Icon name="brain" className="w-16 h-16 mb-4" />
+                                            <p>点击左侧按钮生成报告</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'news' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-bold">财经新闻</h2>
+                                    <div className="flex gap-2">
+                                        <button onClick={fetchNews} className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                                            <Icon name="refresh" className={`w-4 h-4 ${isNewsLoading ? 'animate-spin' : ''}`} /> 刷新新闻
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {newsList.map(news => (
+                                        <div key={news.id} className="bg-dark-card rounded-xl border border-slate-700 p-5 hover:border-slate-500 transition-all group flex flex-col">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <span className={`text-xs px-2 py-1 rounded bg-slate-700 text-slate-300`}>
+                                                    {news.source}
+                                                </span>
+                                                <span className="text-xs text-slate-500">{news.time}</span>
+                                            </div>
+                                            <h3 className="font-bold text-lg mb-2 flex-1 group-hover:text-blue-400 transition-colors line-clamp-2">
+                                                <a href={news.link} target="_blank" rel="noopener noreferrer">{news.title}</a>
+                                            </h3>
+                                            
+                                            {/* AI Analysis Result */}
+                                            {news.analysis && (
+                                                <div className="news-analysis animate-fade-in">
+                                                    {news.analysis}
+                                                </div>
+                                            )}
+
+                                            <div className="mt-4 pt-4 border-t border-slate-700/50 flex justify-between items-center">
+                                                <button 
+                                                    onClick={() => analyzeNewsItem(news)} 
+                                                    disabled={analyzingNewsId === news.id}
+                                                    className={`text-sm flex items-center gap-1 px-3 py-1 rounded-full border border-blue-500/30 hover:bg-blue-500/20 text-blue-400 transition-all ${analyzingNewsId === news.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                >
+                                                    <Icon name="sparkles" className="w-3 h-3" />
+                                                    {analyzingNewsId === news.id ? '分析中...' : 'AI 分析'}
+                                                </button>
+                                                <a href={news.link} target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-white flex items-center gap-1">
+                                                    阅读原文 <Icon name="link" className="w-3 h-3" />
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        
+                    </main>
+                </div>
+            );
+        };
+
+        // UI 小组件
+        const NavButton = ({ active, onClick, icon, label }) => (
+            <button 
+                onClick={onClick}
+                className={`flex items-center gap-3 px-4 py-3 w-full rounded-lg transition-all ${active ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+            >
+                <Icon name={icon} className="w-5 h-5" />
+                <span className="font-medium">{label}</span>
+            </button>
+        );
+
+        const MobileNavBtn = ({ active, onClick, icon }) => (
+            <button 
+                onClick={onClick}
+                className={`p-3 rounded-xl transition-colors ${active ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+            >
+                <Icon name={icon} className="w-6 h-6" />
+            </button>
+        );
+
+        const StatCard = ({ title, value, subValue, isUp, isNeutral }) => (
+            <div className="bg-dark-card rounded-xl p-5 border border-slate-700">
+                <div className="text-slate-400 text-sm mb-1">{title}</div>
+                <div className="flex items-end gap-3">
+                    <div className="text-2xl font-bold text-white">{value}</div>
+                    {!isNeutral && (
+                        <div className={`text-sm font-medium mb-1 ${isUp ? 'text-trade-up' : 'text-trade-down'}`}>
+                            {subValue}
+                        </div>
+                    )}
+                    {isNeutral && <div className="text-sm text-slate-500 mb-1">{subValue}</div>}
+                </div>
+            </div>
+        );
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
