@@ -425,6 +425,22 @@
                             timeStr = pubDate.toLocaleTimeString('zh-CN', {hour: '2-digit', minute:'2-digit'});
                         }
                         
+                        // 提取摘要/描述并清洗 HTML 标签
+                        const rawDescription = item.querySelector("description")?.textContent || "";
+                        // 尝试提取 content:encoded (部分 RSS 使用此字段存放全文)
+                        const rawContent = item.getElementsByTagNameNS("*", "encoded")[0]?.textContent || "";
+                        
+                        // 优先使用 content，其次 description
+                        const textToClean = rawContent || rawDescription;
+                        
+                        // 清洗 HTML 标签，保留纯文本，截取前 800 字以防 Token 过长
+                        const summary = textToClean
+                            .replace(/<!\[CDATA\[|\]\]>/g, '') // 去除 CDATA
+                            .replace(/<[^>]+>/g, '') // 去除 HTML 标签
+                            .replace(/&nbsp;/g, ' ')
+                            .trim()
+                            .substring(0, 800);
+
                         return {
                             id: index,
                             title: item.querySelector("title")?.textContent,
@@ -432,7 +448,8 @@
                             source: "界面新闻", // RSS源固定来源
                             time: timeStr || "刚刚",
                             sentiment: "neutral",
-                            analysis: null // 初始化分析字段
+                            analysis: null, // 初始化分析字段
+                            summary: summary // 新增摘要字段
                         };
                     });
                     
@@ -456,7 +473,12 @@
                 }
                 
                 setAnalyzingNewsId(item.id);
-                const prompt = `请分析这篇财经新闻标题：“${item.title}”。
+                
+                // 构建包含标题和摘要的 Prompt
+                const prompt = `请分析以下财经新闻：
+标题：${item.title}
+${item.summary ? `内容摘要：${item.summary}` : ''}
+
 请严格按照以下格式输出简报：
 影响板块：[板块名称]
 情绪：[看跌/中性/看涨]
