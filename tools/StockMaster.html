@@ -89,7 +89,9 @@
         ];
         const CHART_API_URL = "https://query1.finance.yahoo.com/v8/finance/chart/";
         const QUOTE_API_URL = "https://query1.finance.yahoo.com/v7/finance/quote";
-        const NEWS_RSS_URL = "https://finance.yahoo.com/news/rssindex"; 
+        
+        // 修改为中国财经新闻源 (界面新闻-财经频道)
+        const NEWS_RSS_URL = "https://a.jiemian.com/index.php?m=article&a=rss&cid=4"; 
 
         // 本地名称映射 (保底方案，防止API获取名称失败)
         const KNOWN_NAMES = {
@@ -116,11 +118,11 @@
             { symbol: '^IXIC', name: '纳斯达克' }
         ];
 
-        // 默认新闻数据
+        // 默认新闻数据 (修改为中文财经新闻)
         const DEFAULT_NEWS = [
-            { id: 1, title: "市场等待关键通胀数据，美股期货窄幅震荡", link: "#", source: "MarketWatch", time: "10分钟前", sentiment: "neutral" },
-            { id: 2, title: "人工智能需求持续飙升，芯片板块领涨", link: "#", source: "Bloomberg", time: "30分钟前", sentiment: "positive" },
-            { id: 3, title: "油价因供应担忧小幅上涨", link: "#", source: "Reuters", time: "1小时前", sentiment: "negative" }
+            { id: 1, title: "央行公开市场开展1000亿元7天期逆回购操作，中标利率不变", link: "#", source: "财联社", time: "10分钟前", sentiment: "neutral" },
+            { id: 2, title: "A股三大指数集体收涨，新能源产业链全线爆发，宁德时代涨超5%", link: "#", source: "证券时报", time: "30分钟前", sentiment: "positive" },
+            { id: 3, title: "国际金价震荡下行，市场静待美联储议息会议结果", link: "#", source: "新浪财经", time: "1小时前", sentiment: "negative" }
         ];
 
         // --- 辅助函数：带重试的 Fetch ---
@@ -415,14 +417,20 @@
                     const items = data.querySelectorAll("item");
                     
                     const newNews = Array.from(items).slice(0, 12).map((item, index) => {
-                        const pubDate = new Date(item.querySelector("pubDate")?.textContent);
-                        const timeStr = pubDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        const pubDateText = item.querySelector("pubDate")?.textContent;
+                        let timeStr = "";
+                        if (pubDateText) {
+                            const pubDate = new Date(pubDateText);
+                            // 格式化为中文时间
+                            timeStr = pubDate.toLocaleTimeString('zh-CN', {hour: '2-digit', minute:'2-digit'});
+                        }
+                        
                         return {
                             id: index,
                             title: item.querySelector("title")?.textContent,
                             link: item.querySelector("link")?.textContent,
-                            source: "Yahoo Finance",
-                            time: timeStr,
+                            source: "界面新闻", // RSS源固定来源
+                            time: timeStr || "刚刚",
                             sentiment: "neutral",
                             analysis: null // 初始化分析字段
                         };
@@ -430,7 +438,7 @@
                     
                     if (newNews.length > 0) {
                         setNewsList(newNews);
-                        showNotification('新闻已更新', 'success');
+                        showNotification('财经新闻已更新', 'success');
                     }
                 } catch (error) {
                     console.warn("News fetch warning:", error.message);
